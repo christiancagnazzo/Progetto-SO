@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #define KEY_1 123 
+
  /*
  * Inizializzazione semaforo
  * INPUT:
