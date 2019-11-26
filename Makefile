@@ -4,8 +4,8 @@ CFLAGS = -std=c89 -Wpedantic
 TARGET = master
 TARGET1 = giocatore 
 # object files necessari per produrre l'eseguibile
-OBJ    = my_lib.o master.o
-OBJ1   = my_lib.o giocatore.o
+OBJ    = my_lib.o settings.o master.o
+OBJ1   = my_lib.o settings.o giocatore.o
 
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) $(CFLAGS) -o $(TARGET)
