@@ -1,12 +1,13 @@
-#include "settings.h"
 #include "my_lib.h"
+#include "settings.h"
+
 
 int main(){
 	int i;
 	int sem_id; 
 
 	/* CREAZIONE PEDINE */
-	for (i = 0; i < SO_NUM_P; i++){
+	for (i = 0; i < set("SO_NUM_P"); i++){
 		switch(fork()){
 			case -1:{
 				fprintf(stderr, "Errore generazione pedine\n");
@@ -23,7 +24,7 @@ int main(){
 	/* POSIZIONAMENTO PEDINE */
 
 	/* SBLOCCO IL MASTER*/
-	sem_id = semget(KEY_1,1, 0666);
+	sem_id = semget(KEY_0,1, 0666);
 	sem_reserve(sem_id,0);
 
 	/* ASPETTO INIZIO ROUND */

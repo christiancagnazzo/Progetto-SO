@@ -8,10 +8,10 @@ OBJ    = my_lib.o master.o
 OBJ1   = my_lib.o giocatore.o
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) $(LDFLAGS) -o $(TARGET)
+	$(CC) $(OBJ) $(CFLAGS) -o $(TARGET)
 
 $(TARGET1): $(OBJ1)
-	$(CC) $(OBJ1) $(LDFLAGS) -o $(TARGET1)
+	$(CC) $(OBJ1) $(CFLAGS) -o $(TARGET1)
 
 all: $(TARGET) $(TARGET1)
 

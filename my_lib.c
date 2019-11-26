@@ -68,3 +68,4 @@ int aspetta_zero(int sem_id, int sem_num) {
 	
 	return semop(sem_id, &sops, 1);   
 }
+

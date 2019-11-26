@@ -1,16 +1,15 @@
-#include "settings.h"
 #include "my_lib.h"
+#include "settings.h"
 
-int main(){
+	int main(){
 	int sem_id;
 	int i;
 	
-	printf("master");
 	/* GENERAZIONE SCACCHIERA */
 	/* ... */
 
 	/* GENERAZIONE GIOCATORI */  
-	for (i = 0; i < SO_NUM_G; i++){
+	for (i = 0; i < set("SO_NUM_G"); i++){
 		switch (fork()){
 			case -1:
 				fprintf(stderr, "Errore nella creazione dei giocatori\n");
@@ -25,7 +24,7 @@ int main(){
 	}
 
 	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
-	sem_id = semget(KEY_1, 1, IPC_CREAT | 0666);
+	sem_id = semget(KEY_0, 1, IPC_CREAT | 0666);
 	sem_set_val(sem_id, 0, 5);
 	aspetta_zero(sem_id, 0); /* ATTENDE FINCHE' NON VALE 0 */
 }

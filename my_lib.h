@@ -8,8 +8,6 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define KEY_1 123 
-
  /*
  * Inizializzazione semaforo
  * INPUT:
@@ -64,3 +62,5 @@ union semun {
 	struct seminfo  *__buf;  /* Buffer for IPC_INFO
 				    (Linux-specific) */
 };
+
+
