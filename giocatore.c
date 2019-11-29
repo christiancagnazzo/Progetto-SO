@@ -1,13 +1,14 @@
 #include "my_lib.h"
 
 int main(){
-	int i;
-	int sem_id_padre; 
+	int i, sem_id_padre; 
 	int mat_id;
 	char * matrice;
 	int pos;
 	int conf_id;
 	struct shared_set * set;
+	struct msg_p_g mess;
+	int ms_id;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	
@@ -25,7 +26,6 @@ int main(){
 				exit(EXIT_FAILURE);
 			}
 			case 0:
-				exit(1); /*temp*/ 
 				if (execve("./pedina",NULL,NULL) == -1){
 					fprintf(stderr, "Execve error\n");
 					exit(EXIT_FAILURE);
@@ -33,8 +33,14 @@ int main(){
 		}
 	}
 	
-	/* POSIZIONAMENTO PEDINE */
+	/* CREO CODA DI MESSAGGI PER COMUNICARE CON LE PEDINE */
+	ms_id = msgget(KEY_4, IPC_CREAT | 0666);
+	/* ...  */
+
+
 	
+	/*devo aspettare che tutte le pedine si posizionino e poi sblocco il padre*/
+printf("sblocco il padre");
 	/* SBLOCCO IL MASTER*/
 	sem_id_padre = semget(KEY_0,1, 0666);
 	sem_reserve(sem_id_padre,0);
@@ -42,7 +48,4 @@ int main(){
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	shmdt(matrice);
 	shmdt(set);
-
-	exit(1);
-	/* ASPETTO INIZIO ROUND */
 }

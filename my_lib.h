@@ -10,11 +10,33 @@
 #include <sys/shm.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/msg.h>
 
 
-#define KEY_0 123 /* chiave semaforo */ 
+#define KEY_0 123 /* chiave semaforo master */ 
 #define KEY_1 100 /* chiave memoria matrice */
 #define KEY_2 634 /* chiave memoria settings*/
+#define KEY_3 982 /* chiave semafori matrice */
+#define KEY_4 723 /* chiave coda di messaggi */
+
+struct shared_set {
+	int SO_NUM_G; 
+	int SO_NUM_P;
+	int SO_MAX_TIME; 
+	int SO_BASE; 
+	int SO_ALTEZZA;
+	int SO_FLAG_MIN;
+	int SO_FLAG_MAX;
+	int SO_ROUND_SCORE; 
+	int SO_N_MOVES;   
+	int SO_MIN_HOLD_NSEC;
+};
+
+struct msg_p_g {
+	long type;
+	int x;
+	int y;
+};
 
  /*
  * Inizializzazione semaforo
@@ -72,19 +94,5 @@ union semun {
 };
 
 void configure_settings();
-
-
-struct shared_set {
-	int SO_NUM_G; 
-	int SO_NUM_P;
-	int SO_MAX_TIME; 
-	int SO_BASE; 
-	int SO_ALTEZZA;
-	int SO_FLAG_MIN;
-	int SO_FLAG_MAX;
-	int SO_ROUND_SCORE; 
-	int SO_N_MOVES;   
-	int SO_MIN_HOLD_NSEC;
-};
 
 int posizione(int r, int c, int col);
