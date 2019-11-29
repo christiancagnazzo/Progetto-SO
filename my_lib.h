@@ -7,6 +7,14 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/shm.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+
+#define KEY_0 123 /* chiave semaforo */ 
+#define KEY_1 100 /* chiave memoria matrice */
+#define KEY_2 634 /* chiave memoria settings*/
 
  /*
  * Inizializzazione semaforo
@@ -63,4 +71,20 @@ union semun {
 				    (Linux-specific) */
 };
 
+void configure_settings();
 
+
+struct shared_set {
+	int SO_NUM_G; 
+	int SO_NUM_P;
+	int SO_MAX_TIME; 
+	int SO_BASE; 
+	int SO_ALTEZZA;
+	int SO_FLAG_MIN;
+	int SO_FLAG_MAX;
+	int SO_ROUND_SCORE; 
+	int SO_N_MOVES;   
+	int SO_MIN_HOLD_NSEC;
+};
+
+int posizione(int r, int c, int col);

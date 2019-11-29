@@ -1,19 +1,22 @@
+# flags per la compilazione
 CFLAGS = -std=c89 -Wpedantic
+# target ovvero nome dell'eseguibile che si intende produrre
+TARGET = master
+TARGET1 = giocatore 
+# object files necessari per produrre l'eseguibile
+OBJ    = my_lib.o master.o
+OBJ1   = my_lib.o giocatore.o
 
-all: easy
-	
-easy:
-	gcc $(CFLAGS) -c my_lib.c settings.c
-	gcc $(CFLAGS) settings.o my_lib.o master.c -o master
-	gcc $(CFLAGS) settings.o my_lib.o giocatore.c -o giocatore
+$(TARGET): $(OBJ)
+	$(CC) $(OBJ) $(CFLAGS) -o $(TARGET)
 
-hard: 
-	gcc $(CFLAGS) -c my_lib.c settings.c -D HARD
-	gcc $(CFLAGS) settings.o my_lib.o master.c -o master
-	gcc $(CFLAGS) settings.o my_lib.o giocatore.c -o giocatore
+$(TARGET1): $(OBJ1)
+	$(CC) $(OBJ1) $(CFLAGS) -o $(TARGET1)
+
+all: $(TARGET) $(TARGET1)
 
 clean:
-	rm -f *.o giocatore master *~
+	rm -f *.o $(TARGET) $(TARGET1) *~
 
-run:
-	./master
+run: $(TARGET) $(TARGET1)
+	./$(TARGET)
