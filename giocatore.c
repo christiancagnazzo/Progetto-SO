@@ -1,14 +1,10 @@
 #include "my_lib.h"
 
 int main(){
-	int i, sem_id_zero, sem_id_mutex; 
-	int mat_id;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp;
 	char * matrice;
-	int x,y,g;
-	int conf_id;
 	struct shared_set * set;
-	struct msg_p_g mess;
-	int ms_gp;
+	struct msg_p_g gioc_pedina;
 	int * fork_value;
 	char id_giocatore;
 
@@ -53,11 +49,11 @@ int main(){
 		srand(fork_value[i]);
 		x = rand() % (set->SO_ALTEZZA);
 		y = rand() % (set->SO_BASE);	
-		mess.type = fork_value[i];
-		mess.pos = posizione(x,y,set->SO_BASE);
-		mess.giocatore = id_giocatore;
-		mess.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&mess,((sizeof(int)*2)+sizeof(char)),0);
+		gioc_pedina.type = fork_value[i];
+		gioc_pedina.pos = posizione(x,y,set->SO_BASE);
+		gioc_pedina.giocatore = id_giocatore;
+		gioc_pedina.mosse = set->SO_N_MOVES;
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*2)+sizeof(char)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
@@ -65,8 +61,8 @@ int main(){
 	aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
 	sem_release(sem_id_mutex,0);
 	/* FINE SEZIONE CRITICA*/
-		
-	/* SBLOCCO IL MASTER*/
+	
+	/* SBLOCCO IL MASTER E DO IL MIO STATO */
 	sem_id_zero = semget(KEY_0,2, 0666);
 	sem_reserve(sem_id_zero,0);
 }

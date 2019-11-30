@@ -1,15 +1,10 @@
 #include "my_lib.h"
 
 int main(){
-	int i;
-	int sem_id_zero, sem_id_mutex;
-	int mat_id;
-	int conf_id;
+	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos;
 	char * matrice;
-	int sem_id_matrice;
-	int x,y,ms_gp,ms_mg, pos;
 	struct shared_set  * set;
-
+	int * fork_value;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	configure_settings();
@@ -36,9 +31,9 @@ int main(){
 
 	
 	/* GENERAZIONE GIOCATORI E CODA PER COMUNICAZIONE */
-	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
+	fork_value = malloc(sizeof(int)*set->SO_NUM_G);
 	for (i = 0; i < set->SO_NUM_G; i++){
-		switch (fork()){
+		switch (fork_value[i] = fork()){
 			case -1:
 				fprintf(stderr, "Errore nella creazione dei giocatori\n");
 				exit(EXIT_FAILURE);
@@ -55,8 +50,6 @@ int main(){
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-	
-	
 	
 	/* STAMPO SCACCHIERA */
 	pos = 0;
@@ -75,7 +68,7 @@ int main(){
 	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
 	semctl(sem_id_matrice,0,IPC_RMID);
 	semctl(sem_id_mutex,0,IPC_RMID);
-	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
+	ms_gp = msgget(KEY_4, 0666);
 	msgctl(ms_gp,IPC_RMID,NULL);
 }
 

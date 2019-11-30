@@ -2,12 +2,10 @@
 
 
 int main(){
-    int conf_id, sem_id_matrice;
-    int mat_id, sem_id_mutex, sem_id_zero;
+    int conf_id, sem_id_matrice, mat_id, sem_id_mutex, sem_id_zero, ms_gp, r;
     char * matrice;
     struct shared_set * set;
-    struct msg_p_g mess;
-	int ms_gp, r;
+    struct msg_p_g gioc_pedina;
     struct statopedina pedina;
 
     setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
@@ -26,11 +24,11 @@ int main(){
 	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_gp, &mess, ((sizeof(int)*2)+sizeof(char)), getpid(), 0);
+    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*2)+sizeof(char)), getpid(), 0);
     pedina.id = getpid();
-    pedina.pos = mess.pos; 
-    pedina.mosse = mess.mosse;
-    pedina.giocatore = mess.giocatore;
+    pedina.pos = gioc_pedina.pos; 
+    pedina.mosse = gioc_pedina.mosse;
+    pedina.giocatore = gioc_pedina.giocatore;
     /* SEZIONE CRITICA */
     sem_reserve(sem_id_mutex,1);
     r = sem_reserve_nowait(sem_id_matrice,pedina.pos);
