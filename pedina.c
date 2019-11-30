@@ -1,12 +1,5 @@
 #include "my_lib.h"
 
-struct statopedina
-{
-    int id;
-    int pos;
-    int mosse;
-};
-
 
 int main(){
     int conf_id, sem_id_matrice;
@@ -16,7 +9,7 @@ int main(){
     struct msg_p_g mess;
 	int ms_id;
     struct statopedina pedina;
-int b;
+
     setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 
     /* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
@@ -33,20 +26,20 @@ int b;
 	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_id = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_id, &mess, sizeof(int), getpid(), 0);
+    msgrcv(ms_id, &mess, ((sizeof(int)*2)+sizeof(char)), getpid(), 0);
     pedina.id = getpid();
-    pedina.pos = mess.pos;
-    pedina.mosse = set->SO_N_MOVES;
+    pedina.pos = mess.pos; 
+    pedina.mosse = mess.mosse;
+    pedina.giocatore = mess.giocatore;
     /* SEZIONE CRITICA */
     sem_reserve(sem_id_mutex,1);
-printf("pedina\n");
-    b = sem_reserve_nowait(sem_id_matrice,pedina.pos);
+    sem_reserve_nowait(sem_id_matrice,pedina.pos);
     /*while (b == -1 && errno == EAGAIN){
         printf("ciao");
         pedina.pos = (mess.pos+1);
         b = sem_reserve_nowait(sem_id_matrice,pedina.pos);
     }*/
-    matrice[pedina.pos] = (char) getpid();
+    matrice[pedina.pos] = pedina.giocatore;
     sem_release(sem_id_mutex,1);
     /* FINE SEZIONE CRITICA */
 

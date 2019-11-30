@@ -4,12 +4,13 @@ int main(){
 	int i, sem_id_zero, sem_id_mutex; 
 	int mat_id;
 	char * matrice;
-	int x,y;
+	int x,y,g;
 	int conf_id;
 	struct shared_set * set;
 	struct msg_p_g mess;
 	int ms_id;
 	int * fork_value;
+	char id_giocatore;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	
@@ -19,6 +20,7 @@ int main(){
 	mat_id = shmget(KEY_1, sizeof(char)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
+	id_giocatore = 'a';
 	/* CREAZIONE PEDINE */
 	fork_value = malloc(sizeof(int)*set->SO_NUM_P);
 	for (i = 0; i < set->SO_NUM_P; i++){
@@ -44,15 +46,15 @@ int main(){
 
 	/* SEZIONE CRITICA */
 	sem_reserve(sem_id_mutex,0);
-printf("giocaotore\n");
 	for (i = 0; i < set->SO_NUM_P; i++){	
-		srand(time(NULL));
-		x = rand() % (set->SO_BASE*set->SO_ALTEZZA);
-		y = rand() % (set->SO_BASE*set->SO_ALTEZZA);
+		srand(fork_value[i]);
+		x = rand() % (set->SO_ALTEZZA);
+		y = rand() % (set->SO_BASE);	
 		mess.type = fork_value[i];
-		/*mess.pos = posizione(x,y,set->SO_BASE);*/
-		mess.pos = i;
-		msgsnd(ms_id,&mess,sizeof(int),0);
+		mess.pos = posizione(x,y,set->SO_BASE);
+		mess.giocatore = id_giocatore;
+		mess.mosse = set->SO_N_MOVES;
+		msgsnd(ms_id,&mess,((sizeof(int)*2)+sizeof(char)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);

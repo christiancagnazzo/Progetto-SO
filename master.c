@@ -22,6 +22,10 @@ int main(){
 	mat_id = shmget(KEY_1, sizeof(char)*(set->SO_BASE)*(set->SO_ALTEZZA), IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
+	/* INSERIMENTO DATI MATRICE*/
+	for (pos = 0; pos < set->SO_BASE*set->SO_ALTEZZA; pos++)
+		matrice[pos] = 0;
+
 	/* CREO SEMAFORI PER SCACCHIERA */
 	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
 	for (i = 0; i < (set->SO_ALTEZZA*set->SO_BASE); i++)
@@ -32,6 +36,7 @@ int main(){
 	sem_set_val(sem_id_mutex,0,1); /* giocatore a turno piazza pedine */
 	sem_set_val(sem_id_mutex,1,1); /* pedine si posizionano una alla volta */
 
+	
 	/* GENERAZIONE GIOCATORI */  
 	for (i = 0; i < set->SO_NUM_G; i++){
 		switch (fork()){
@@ -52,6 +57,15 @@ int main(){
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 	
+		/* STAMPO MATRICE*/
+	pos = 0;
+	for (x = 0; x < set->SO_ALTEZZA; x++){
+		printf("\n");
+		for (y = 0; y < set->SO_BASE; y++)
+			printf("|%c|", matrice[pos++]);
+	}
+	
+
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);

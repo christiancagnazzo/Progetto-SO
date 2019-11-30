@@ -39,7 +39,18 @@ struct shared_set {
 struct msg_p_g {
 	long type;
 	int pos;
+	int mosse;
+	char giocatore;
 };
+
+struct statopedina
+{
+    int id;
+    int pos;
+    int mosse;
+	char giocatore;
+};
+
 
  /*
  * Inizializzazione semaforo
