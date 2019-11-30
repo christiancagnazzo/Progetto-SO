@@ -2,7 +2,7 @@
 
 int main(){
 	int i;
-	int sem_id_padre;
+	int sem_id_zero, sem_id_mutex;
 	int mat_id;
 	int conf_id;
 	char * matrice;
@@ -25,8 +25,12 @@ int main(){
 	/* CREO SEMAFORI PER SCACCHIERA */
 	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
 	for (i = 0; i < (set->SO_ALTEZZA*set->SO_BASE); i++)
-		sem_set_val(KEY_3,i,1);
+		sem_set_val(sem_id_matrice,i,1);
 
+	/* SEMAFORI MUTUA ESCLUSIONE */
+	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
+	sem_set_val(sem_id_mutex,0,1); /* giocatore a turno piazza pedine */
+	sem_set_val(sem_id_mutex,1,1); /* pedine si posizionano una alla volta */
 
 	/* GENERAZIONE GIOCATORI */  
 	for (i = 0; i < set->SO_NUM_G; i++){
@@ -44,18 +48,17 @@ int main(){
 	}
 	
 	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
-	sem_id_padre = semget(KEY_0, 1, IPC_CREAT | 0666);
-	sem_set_val(sem_id_padre, 0, set->SO_NUM_G);
-	aspetta_zero(sem_id_padre, 0); /* ATTENDE FINCHE' NON VALE 0 */	
+	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
+	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
+	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 	
-printf("padre sbloccato");
-
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	shmdt(matrice);
 	shmdt(set);
-	semctl(sem_id_padre,0,IPC_RMID); /* 0 è ignorato*/
+	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
 	semctl(sem_id_matrice,0,IPC_RMID);
+	semctl(sem_id_mutex,0,IPC_RMID);
 }
 

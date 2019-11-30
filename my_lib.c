@@ -24,6 +24,17 @@ int sem_reserve(int sem_id, int sem_num) {
 	return semop(sem_id, &sops, 1);
 }
 
+/* Richiesta di accesso a risorsa senza aspettare se non c'è */
+int sem_reserve_nowait(int sem_id, int sem_num) {
+	struct sembuf sops;
+	
+	sops.sem_num = sem_num;
+	sops.sem_op = -1;
+	sops.sem_flg = IPC_NOWAIT;
+	return semop(sem_id, &sops, 1);
+}
+
+
 /* Rilascio di una risorsa */
 int sem_release(int sem_id, int sem_num) {
 	struct sembuf sops;

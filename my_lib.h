@@ -11,13 +11,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/msg.h>
+#include <time.h>
 
 
-#define KEY_0 123 /* chiave semaforo master */ 
+#define KEY_0 123 /* chiave semafori aspetta zero */ 
 #define KEY_1 100 /* chiave memoria matrice */
 #define KEY_2 634 /* chiave memoria settings*/
 #define KEY_3 982 /* chiave semafori matrice */
 #define KEY_4 723 /* chiave coda di messaggi */
+#define KEY_5 911 /* chiave semaforo mutua esclusione */
+/* semaforo 0 mutua esclusione giocatore piazza pedine */
+/* semaforo 1 mutua esclusione pedina si posizionano */
 
 struct shared_set {
 	int SO_NUM_G; 
@@ -34,8 +38,7 @@ struct shared_set {
 
 struct msg_p_g {
 	long type;
-	int x;
-	int y;
+	int pos;
 };
 
  /*
@@ -82,7 +85,6 @@ int sem_getall(char * my_string, int sem_id);
 int aspetta_zero(int sem_id, int sem_num);
 /*
 
-
  * Union necessaria
  */
 union semun {
@@ -92,6 +94,9 @@ union semun {
 	struct seminfo  *__buf;  /* Buffer for IPC_INFO
 				    (Linux-specific) */
 };
+
+
+int sem_reserve_nowait(int sem_id, int sem_num);
 
 void configure_settings();
 
