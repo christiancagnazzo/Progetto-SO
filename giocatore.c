@@ -8,7 +8,7 @@ int main(){
 	int conf_id;
 	struct shared_set * set;
 	struct msg_p_g mess;
-	int ms_id;
+	int ms_gp;
 	int * fork_value;
 	char id_giocatore;
 
@@ -20,7 +20,10 @@ int main(){
 	mat_id = shmget(KEY_1, sizeof(char)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
-	id_giocatore = 'a';
+	/* da sistemare (rischio lettera uguale) */
+	srand(getpid());
+	id_giocatore = 97+rand() % 26;
+	
 	/* CREAZIONE PEDINE */
 	fork_value = malloc(sizeof(int)*set->SO_NUM_P);
 	for (i = 0; i < set->SO_NUM_P; i++){
@@ -39,7 +42,7 @@ int main(){
 	
 	/* CREO CODA DI MESSAGGI PER COMUNICARE CON LE PEDINE */
 	/* E INVIO LORO LA POSIZIONE */
-	ms_id = msgget(KEY_4, IPC_CREAT | 0666);
+	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
 
 	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
 	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
@@ -54,7 +57,7 @@ int main(){
 		mess.pos = posizione(x,y,set->SO_BASE);
 		mess.giocatore = id_giocatore;
 		mess.mosse = set->SO_N_MOVES;
-		msgsnd(ms_id,&mess,((sizeof(int)*2)+sizeof(char)),0);
+		msgsnd(ms_gp,&mess,((sizeof(int)*2)+sizeof(char)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);

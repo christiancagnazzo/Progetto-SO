@@ -18,10 +18,11 @@
 #define KEY_1 100 /* chiave memoria matrice */
 #define KEY_2 634 /* chiave memoria settings*/
 #define KEY_3 982 /* chiave semafori matrice */
-#define KEY_4 723 /* chiave coda di messaggi */
+#define KEY_4 723 /* chiave coda di messaggi giocatori pedine */
 #define KEY_5 911 /* chiave semaforo mutua esclusione */
 /* semaforo 0 mutua esclusione giocatore piazza pedine */
 /* semaforo 1 mutua esclusione pedina si posizionano */
+#define KEY_6 732 /* chiave coda di messaggi master giocatori */
 
 struct shared_set {
 	int SO_NUM_G; 
@@ -43,6 +44,18 @@ struct msg_p_g {
 	char giocatore;
 };
 
+struct msg_m_g {
+	char id;
+	int mosse;
+};
+
+struct  statogiocatore {
+	int id;
+	int mosse;
+	int punteggio;
+};
+
+
 struct statopedina
 {
     int id;
@@ -50,7 +63,6 @@ struct statopedina
     int mosse;
 	char giocatore;
 };
-
 
  /*
  * Inizializzazione semaforo
