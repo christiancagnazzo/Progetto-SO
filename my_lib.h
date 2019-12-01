@@ -22,6 +22,7 @@
 #define KEY_5 911 /* chiave semaforo mutua esclusione */
 /* semaforo 0 mutua esclusione giocatore piazza pedine */
 /* semaforo 1 mutua esclusione pedina si posizionano */
+#define KEY_6 145
 
 struct shared_set {
 	int SO_NUM_G; 
@@ -43,12 +44,26 @@ struct msg_p_g {
 	char giocatore;
 };
 
+struct msg_m_g {
+	long type;
+	int mosse_residue;
+	int punteggio;
+	char giocatore;
+};
+
 struct statopedina
 {
     int id;
     int pos;
     int mosse;
 	char giocatore;
+};
+
+struct statogiocatore {
+	int id;
+	char giocatore;
+	int mosse_residue;
+	int punteggio;
 };
 
  /*

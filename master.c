@@ -1,10 +1,11 @@
 #include "my_lib.h"
 
 int main(){
-	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos;
+	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos, ms_mg;
 	char * matrice;
 	struct shared_set  * set;
 	int * fork_value;
+	struct msg_m_g master_giocatore;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	configure_settings();
@@ -51,6 +52,13 @@ int main(){
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 	
+	/* STAMPO GIOCATORI */
+	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
+	for (i = 0; i < set->SO_NUM_G; i++){
+		msgrcv(ms_mg, &master_giocatore,((sizeof(int)*2)+sizeof(char)), fork_value[i], 0);
+		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
+	}
+	
 	/* STAMPO SCACCHIERA */
 	pos = 0;
 	for (x = 0; x < set->SO_ALTEZZA; x++){
@@ -70,5 +78,6 @@ int main(){
 	semctl(sem_id_mutex,0,IPC_RMID);
 	ms_gp = msgget(KEY_4, 0666);
 	msgctl(ms_gp,IPC_RMID,NULL);
+	msgctl(ms_mg,IPC_RMID,NULL);
 }
 

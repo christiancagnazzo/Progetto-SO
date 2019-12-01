@@ -1,12 +1,14 @@
 #include "my_lib.h"
 
 int main(){
-	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp, ms_mg;
 	char * matrice;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
 	int * fork_value;
 	char id_giocatore;
+	struct statogiocatore giocatore;
+	struct msg_m_g master_giocatore;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	
@@ -19,6 +21,10 @@ int main(){
 	/* da sistemare (rischio lettera uguale) */
 	srand(getpid());
 	id_giocatore = 97+rand() % 26;
+	giocatore.id = getpid();
+	giocatore.giocatore = id_giocatore;
+	giocatore.mosse_residue = (set->SO_N_MOVES*set->SO_NUM_P);
+	giocatore.punteggio = 0;
 	
 	/* CREAZIONE PEDINE */
 	fork_value = malloc(sizeof(int)*set->SO_NUM_P);
@@ -63,6 +69,12 @@ int main(){
 	/* FINE SEZIONE CRITICA*/
 	
 	/* SBLOCCO IL MASTER E DO IL MIO STATO */
+	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
+	master_giocatore.type = giocatore.id; /* PID */
+	master_giocatore.giocatore = giocatore.giocatore;
+	master_giocatore.mosse_residue = giocatore.mosse_residue;
+	master_giocatore.punteggio = giocatore.punteggio;
+	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*2)+sizeof(char)),0);
 	sem_id_zero = semget(KEY_0,2, 0666);
 	sem_reserve(sem_id_zero,0);
 }
