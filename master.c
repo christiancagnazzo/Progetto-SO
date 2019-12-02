@@ -59,12 +59,20 @@ int main(){
 		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
 	}
 	
+	matrice[23] = -23;
 	/* STAMPO SCACCHIERA */
 	pos = 0;
 	for (x = 0; x < set->SO_ALTEZZA; x++){
-		printf("\n");
-		for (y = 0; y < set->SO_BASE; y++)
-			printf("|%c|", matrice[pos++]);
+		for (y = 0; y < set->SO_BASE; y++){
+			if (semctl(sem_id_matrice,pos, GETVAL) == 0)
+				printf("|%c ", matrice[pos++]); /* pedina */ 
+			else
+				if (matrice[pos] < 0) 	
+					printf("|%d" , -matrice[pos++]); /* bandierina con relativo punteggio */
+				else
+					printf("|%c  ", matrice[pos++]);	 /* casella vuota */
+		}
+		printf("|\n");
 	}
 	
 
@@ -80,4 +88,5 @@ int main(){
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
 }
+
 

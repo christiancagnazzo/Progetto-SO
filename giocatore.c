@@ -20,7 +20,7 @@ int main(){
 
 	/* da sistemare (rischio lettera uguale) */
 	srand(getpid());
-	id_giocatore = 97+rand() % 26;
+	id_giocatore = 65+rand() % 26;
 	giocatore.id = getpid();
 	giocatore.giocatore = id_giocatore;
 	giocatore.mosse_residue = (set->SO_N_MOVES*set->SO_NUM_P);
