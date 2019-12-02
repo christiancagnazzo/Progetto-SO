@@ -2,7 +2,7 @@
 
 int main(int argc, const char * args[]){
 	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp, ms_mg;
-	char * matrice;
+	int * matrice;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
 	int * fork_value;
@@ -18,8 +18,7 @@ int main(int argc, const char * args[]){
 	mat_id = shmget(KEY_1, sizeof(char)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
-	/* da sistemare (rischio lettera uguale) */
-	id_giocatore = atoi(args[0]);
+	id_giocatore = -(atoi(args[0]));
 	giocatore.id = getpid();
 	giocatore.giocatore = id_giocatore;
 	giocatore.mosse_residue = (set->SO_N_MOVES*set->SO_NUM_P);
@@ -58,7 +57,7 @@ int main(int argc, const char * args[]){
 		gioc_pedina.pos = posizione(x,y,set->SO_BASE);
 		gioc_pedina.giocatore = id_giocatore;
 		gioc_pedina.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*2)+sizeof(char)),0);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*3)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
@@ -73,7 +72,7 @@ int main(int argc, const char * args[]){
 	master_giocatore.giocatore = giocatore.giocatore;
 	master_giocatore.mosse_residue = giocatore.mosse_residue;
 	master_giocatore.punteggio = giocatore.punteggio;
-	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*2)+sizeof(char)),0);
+	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*3)),0);
 	sem_id_zero = semget(KEY_0,2, 0666);
 	sem_reserve(sem_id_zero,0);
 }

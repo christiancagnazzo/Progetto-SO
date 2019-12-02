@@ -3,7 +3,7 @@
 
 int main(){
     int conf_id, sem_id_matrice, mat_id, sem_id_mutex, sem_id_zero, ms_gp, r;
-    char * matrice;
+    int * matrice;
     struct shared_set * set;
     struct msg_p_g gioc_pedina;
     struct statopedina pedina;
@@ -24,7 +24,7 @@ int main(){
 	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*2)+sizeof(char)), getpid(), 0);
+    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*3)), getpid(), 0);
     pedina.id = getpid();
     pedina.pos = gioc_pedina.pos; 
     pedina.mosse = gioc_pedina.mosse;

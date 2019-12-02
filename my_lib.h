@@ -41,14 +41,14 @@ struct msg_p_g {
 	long type;
 	int pos;
 	int mosse;
-	char giocatore;
+	int giocatore;
 };
 
 struct msg_m_g {
 	long type;
 	int mosse_residue;
 	int punteggio;
-	char giocatore;
+	int giocatore;
 };
 
 struct statopedina
@@ -56,12 +56,12 @@ struct statopedina
     int id;
     int pos;
     int mosse;
-	char giocatore;
+	int giocatore;
 };
 
 struct statogiocatore {
 	int id;
-	char giocatore;
+	int giocatore;
 	int mosse_residue;
 	int punteggio;
 };

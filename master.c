@@ -2,7 +2,8 @@
 
 int main(){
 	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos, ms_mg, n_flag;
-	char * matrice;
+	int pt_bandierina, pt_totali;
+	int * matrice;
 	struct shared_set  * set;
 	int * fork_value;
 	struct msg_m_g master_giocatore;
@@ -15,7 +16,7 @@ int main(){
 	/* CONFIGURAZIONE E GENERAZIONE SCACCHIERA */
 	conf_id = shmget(KEY_2, sizeof(int)*10, IPC_CREAT | 0600);
 	set = shmat(conf_id, NULL, 0);
-	mat_id = shmget(KEY_1, sizeof(char)*(set->SO_BASE)*(set->SO_ALTEZZA), IPC_CREAT | 0666);
+	mat_id = shmget(KEY_1, sizeof(int)*(set->SO_BASE)*(set->SO_ALTEZZA), IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
 	/* INSERIMENTO DATI MATRICE*/
@@ -58,39 +59,50 @@ int main(){
 
 
 	/* PIAZZO BANDIERINE */
+	/*pt_totali = set->SO_ROUND_SCORE;
 	srand(time(NULL));
 	n_flag = rand()%((set->SO_FLAG_MAX)-(set->SO_FLAG_MIN)+1)+(set->SO_FLAG_MIN);
-	while (n_flag > 0){
-		// calcolo il punteggio
-		// randomizzo x
-		// randomizzo y
-		// controllo se non ci sono pedine
-	}
+	while ((n_flag-1) > 0){
+		pt_bandierina = rand() % pt_totali+1;
+		pt_totali= pt_totali - pt_bandierina;
+		do{
+			x = rand() % (set->SO_ALTEZZA);
+			y = rand() % (set->SO_BASE);
+		} while (semctl(sem_id_matrice,posizione(x,y,set->SO_BASE),GETVAL) == 0);
+		matrice[posizione(x,y,set->SO_BASE)] = -pt_bandierina;
+	}*/
 	
 	/* STAMPO GIOCATORI */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
 	for (i = 0; i < set->SO_NUM_G; i++){
-		msgrcv(ms_mg, &master_giocatore,((sizeof(int)*2)+sizeof(char)), fork_value[i], 0);
-		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
+		msgrcv(ms_mg, &master_giocatore,((sizeof(int)*3)), fork_value[i], 0);
+		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",-master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
 	}
-	
+
 	/* STAMPO SCACCHIERA */
 	pos = 0;
+	printf("\n");
+	for (i = 0; i < set->SO_BASE; i++) printf(" __");
+	printf("\n");
 	for (x = 0; x < set->SO_ALTEZZA; x++){
 		for (y = 0; y < set->SO_BASE; y++){
-			if (semctl(sem_id_matrice,pos, GETVAL) == 0)
-				printf("|%c ", matrice[pos++]); /* pedina */ 
+			if (matrice[pos] < 0)
+				printf("|%c ", -(matrice[pos++])); /* pedina */ 
 			else
-				if (matrice[pos] < 0) 	
-					printf("|%d" , -matrice[pos++]); /* bandierina con relativo punteggio */
+				if (matrice[pos] > 0) 	
+					printf("|%d " , matrice[pos++]); /* bandierina con relativo punteggio */
 				else
-					printf("|%c  ", matrice[pos++]);	 /* casella vuota */
+					printf("|  ", matrice[pos++]);	 /* casella vuota */
 		}
 		printf("|\n");
+		for (i = 0; i < set->SO_BASE; i++) printf(" __");
+		printf("|\n");
+
 	}
 	
 
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
+	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	shmdt(matrice);
@@ -102,5 +114,3 @@ int main(){
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
 }
-
-
