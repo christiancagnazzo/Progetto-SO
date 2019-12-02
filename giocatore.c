@@ -1,6 +1,6 @@
 #include "my_lib.h"
 
-int main(){
+int main(int argc, const char * args[]){
 	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp, ms_mg;
 	char * matrice;
 	struct shared_set * set;
@@ -19,8 +19,7 @@ int main(){
 	matrice = shmat(mat_id, NULL, 0);
 
 	/* da sistemare (rischio lettera uguale) */
-	srand(getpid());
-	id_giocatore = 65+rand() % 26;
+	id_giocatore = atoi(args[0]);
 	giocatore.id = getpid();
 	giocatore.giocatore = id_giocatore;
 	giocatore.mosse_residue = (set->SO_N_MOVES*set->SO_NUM_P);
@@ -49,7 +48,7 @@ int main(){
 	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
 	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
 
-	/* SEZIONE CRITICA */
+	/* SEZIONE CRITICA */	
 	sem_reserve(sem_id_mutex,0);
 	for (i = 0; i < set->SO_NUM_P; i++){	
 		srand(fork_value[i]);

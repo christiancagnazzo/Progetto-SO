@@ -39,7 +39,7 @@ int main(){
             pedina.pos = ((pedina.pos) +1); /* provo ad andare avanti */
         r = sem_reserve_nowait(sem_id_matrice,pedina.pos);
     }
-    matrice[pedina.pos] = pedina.giocatore;
+    matrice[pedina.pos] = pedina.giocatore;   
     sem_release(sem_id_mutex,1);
     /* FINE SEZIONE CRITICA */
 

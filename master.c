@@ -1,11 +1,13 @@
 #include "my_lib.h"
 
 int main(){
-	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos, ms_mg;
+	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos, ms_mg, n_flag;
 	char * matrice;
 	struct shared_set  * set;
 	int * fork_value;
 	struct msg_m_g master_giocatore;
+	char * args[2];
+	char str[4];
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	configure_settings();
@@ -30,7 +32,7 @@ int main(){
 	sem_set_val(sem_id_mutex,0,1); /* giocatore a turno piazza pedine */
 	sem_set_val(sem_id_mutex,1,1); /* pedine si posizionano una alla volta */
 
-	
+	args[1] = NULL;
 	/* GENERAZIONE GIOCATORI E CODA PER COMUNICAZIONE */
 	fork_value = malloc(sizeof(int)*set->SO_NUM_G);
 	for (i = 0; i < set->SO_NUM_G; i++){
@@ -40,7 +42,9 @@ int main(){
 				exit(EXIT_FAILURE);
 
 			case 0:
-				if (execve("./giocatore",NULL,NULL) == -1){
+				sprintf(str,"%d", 65 + i);
+				args[0] = str;
+				if (execve("./giocatore",args,NULL) == -1){
 					fprintf(stderr, "Execve error\n");
 					exit(EXIT_FAILURE);
 			}
@@ -51,6 +55,17 @@ int main(){
 	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
+
+
+	/* PIAZZO BANDIERINE */
+	srand(time(NULL));
+	n_flag = rand()%((set->SO_FLAG_MAX)-(set->SO_FLAG_MIN)+1)+(set->SO_FLAG_MIN);
+	while (n_flag > 0){
+		// calcolo il punteggio
+		// randomizzo x
+		// randomizzo y
+		// controllo se non ci sono pedine
+	}
 	
 	/* STAMPO GIOCATORI */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
@@ -59,7 +74,6 @@ int main(){
 		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
 	}
 	
-	matrice[23] = -23;
 	/* STAMPO SCACCHIERA */
 	pos = 0;
 	for (x = 0; x < set->SO_ALTEZZA; x++){
