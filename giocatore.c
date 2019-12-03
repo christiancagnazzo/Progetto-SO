@@ -57,10 +57,10 @@ int main(int argc, const char * args[]){
 		gioc_pedina.pos = posizione(x,y,set->SO_BASE);
 		gioc_pedina.giocatore = id_giocatore;
 		gioc_pedina.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*3)),0);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*3)+sizeof(char)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
-	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
+	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 1, set->SO_NUM_P);
 	aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
 	sem_release(sem_id_mutex,0);
@@ -74,5 +74,14 @@ int main(int argc, const char * args[]){
 	master_giocatore.punteggio = giocatore.punteggio;
 	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*3)),0);
 	sem_id_zero = semget(KEY_0,2, 0666);
+	sem_reserve(sem_id_zero,0);
+
+	/* ASPETTO VIA LIBERA DAL MASTER */
+	aspetta_zero(sem_id_zero,2);
+
+	/* do indicazioni pedine*/
+	
+
+	/* SBLOCCO IL MASTER */
 	sem_reserve(sem_id_zero,0);
 }

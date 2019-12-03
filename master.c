@@ -19,7 +19,7 @@ int main(){
 	mat_id = shmget(KEY_1, sizeof(int)*(set->SO_BASE)*(set->SO_ALTEZZA), IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
-	/* INSERIMENTO DATI MATRICE*/
+	/* SETTAGGIO INIZIALE MATRICE*/
 	for (pos = 0; pos < set->SO_BASE*set->SO_ALTEZZA; pos++)
 		matrice[pos] = 0;
 
@@ -43,7 +43,7 @@ int main(){
 				exit(EXIT_FAILURE);
 
 			case 0:
-				sprintf(str,"%d", 97 + i);
+				sprintf(str,"%d", 65 + i);
 				args[0] = str;
 				if (execve("./giocatore",args,NULL) == -1){
 					fprintf(stderr, "Execve error\n");
@@ -53,10 +53,11 @@ int main(){
 	}
 	
 	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
-	sem_id_zero = semget(KEY_0, 2, IPC_CREAT | 0666);
+	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
+	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
+	sem_set_val(sem_id_zero,2,set->SO_NUM_G); /* semaforo per far attendere giocatori */
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-
 
 	/* PIAZZO BANDIERINE */
 	pt_totali = set->SO_ROUND_SCORE;
@@ -79,37 +80,21 @@ int main(){
 		n_flag--;
 	}
 
-	/* STAMPO GIOCATORI */
-	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
+	/* STAMPO STATO */
 	for (i = 0; i < set->SO_NUM_G; i++){
 		msgrcv(ms_mg, &master_giocatore,((sizeof(int)*3)), fork_value[i], 0);
 		printf("GIOCATORE: %c, MOSSE TOTALI: %d, PUNTEGGIO: %d\n",-master_giocatore.giocatore,master_giocatore.mosse_residue,master_giocatore.punteggio);
 	}
+	stampa_scacchiera(set->SO_BASE,set->SO_ALTEZZA);
 
-	/* STAMPO SCACCHIERA */
-	pos = 0;
-	printf("\n");
-	for (i = 0; i < set->SO_BASE; i++) printf(" __");
-	printf("\n");
-	for (x = 0; x < set->SO_ALTEZZA; x++){
-		for (y = 0; y < set->SO_BASE; y++){
-			if (matrice[pos] < 0)
-				printf("|%c ", -(matrice[pos++])); /* pedina */ 
-			else
-				if (matrice[pos] > 0 && matrice[pos] < 10 ) 	
-					printf("|%d " , matrice[pos++]); /* bandierina con relativo punteggio */
-				else if (matrice[pos] >= 10)
-					printf("|%d" , matrice[pos++]); 
-				else	
-					printf("|  ", matrice[pos++]);	 /* casella vuota */
-		}
-		printf("|\n");
-		for (i = 0; i < set->SO_BASE; i++) printf(" __");
-		printf("|\n");
+	/* AVVISO I GIOCATORI CHE POSSONO PIAZZARE LE PEDINE */
+	for (i = 0; i < set->SO_NUM_G; i++)
+		sem_reserve(sem_id_zero,2);
 
-	}
+	/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
+	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
+	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 	
-
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
@@ -123,3 +108,5 @@ int main(){
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
 }
+
+/* quando la bandierina è stata presa la setto a rossa*/

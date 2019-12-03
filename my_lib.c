@@ -113,17 +113,34 @@ int posizione(int r, int c, int col){
 	return r * col + c;
 }
 
+void stampa_scacchiera(int base, int altezza){
+	int pos, i, y,x, mat_id;
+	int * matrice;
 
-/* INSERIMENTO DATI MATRICE*/
-/*	for (pos = 0; pos < set->SO_BASE*set->SO_ALTEZZA; pos++)
-		matrice[pos] = '0';
-
-	/* STAMPO MATRICE*/
-/*	pos = 0;
-	for (x = 0; x < set->SO_ALTEZZA; x++){
-		printf("\n");
-		for (y = 0; y < set->SO_BASE; y++)
-			printf("%c ", matrice[pos++]);
-	}
+	pos = 0;
 	
-*/
+	mat_id = shmget(KEY_1, sizeof(int)*(base)*(altezza), IPC_CREAT | 0666);
+	matrice = shmat(mat_id, NULL, 0);
+
+
+	printf("\n");
+	for (i = 0; i < base; i++) printf(BLUE" __"RESET);
+	printf("\n");
+	for (x = 0; x < altezza; x++){
+		for (y = 0; y < base; y++){
+			if (matrice[pos] < 0)
+				printf(BLUE"|"RESET"%c ", -(matrice[pos++])); /* pedina */ 
+			else
+				if (matrice[pos] > 0 && matrice[pos] < 10 ) 	
+					printf(BLUE"|"YELLOW"%d " RESET , matrice[pos++]); /* bandierina con relativo punteggio */
+				else if (matrice[pos] >= 10)
+					printf(BLUE"|"YELLOW "%d" RESET, matrice[pos++]); 
+				else	
+					printf(BLUE"|  "RESET, matrice[pos++]);	 /* casella vuota */
+		}
+		printf(BLUE"|\n"RESET);
+		for (i = 0; i < base; i++) printf(BLUE" __"RESET);
+		printf(BLUE"|\n"RESET);
+	}
+}
+

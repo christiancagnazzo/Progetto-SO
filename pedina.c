@@ -24,7 +24,7 @@ int main(){
 	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*3)), getpid(), 0);
+    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*3)+sizeof(char)), getpid(), 0);
     pedina.id = getpid();
     pedina.pos = gioc_pedina.pos; 
     pedina.mosse = gioc_pedina.mosse;

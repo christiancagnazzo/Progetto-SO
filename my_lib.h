@@ -13,8 +13,17 @@
 #include <sys/msg.h>
 #include <time.h>
 
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define RESET   "\x1b[0m"
+#define RED "\x1b[35m"
+#define BLUE    "\x1b[34m"
+
 
 #define KEY_0 123 /* chiave semafori aspetta zero */ 
+/* 0 master aspetta giocatori */
+/* 1 giocatori aspettano pedine */
+/* 2 giocatori aspettano master */
 #define KEY_1 100 /* chiave memoria matrice */
 #define KEY_2 634 /* chiave memoria settings*/
 #define KEY_3 982 /* chiave semafori matrice */
@@ -22,7 +31,7 @@
 #define KEY_5 911 /* chiave semaforo mutua esclusione */
 /* semaforo 0 mutua esclusione giocatore piazza pedine */
 /* semaforo 1 mutua esclusione pedina si posizionano */
-#define KEY_6 145
+#define KEY_6 145 /* master giocatore*/
 
 struct shared_set {
 	int SO_NUM_G; 
@@ -42,6 +51,7 @@ struct msg_p_g {
 	int pos;
 	int mosse;
 	int giocatore;
+	char indicazione;
 };
 
 struct msg_m_g {
@@ -126,3 +136,5 @@ int sem_reserve_nowait(int sem_id, int sem_num);
 void configure_settings();
 
 int posizione(int r, int c, int col);
+
+void stampa_scacchiera(int base, int altezza);
