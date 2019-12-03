@@ -2,7 +2,7 @@
 
 int main(){
 	int i, sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice, x,y,ms_gp, pos, ms_mg, n_flag;
-	int pt_bandierina, pt_totali;
+	int pt_bandierina, pt_totali, media;
 	int * matrice;
 	struct shared_set  * set;
 	int * fork_value;
@@ -43,7 +43,7 @@ int main(){
 				exit(EXIT_FAILURE);
 
 			case 0:
-				sprintf(str,"%d", 65 + i);
+				sprintf(str,"%d", 97 + i);
 				args[0] = str;
 				if (execve("./giocatore",args,NULL) == -1){
 					fprintf(stderr, "Execve error\n");
@@ -59,19 +59,26 @@ int main(){
 
 
 	/* PIAZZO BANDIERINE */
-	/*pt_totali = set->SO_ROUND_SCORE;
+	pt_totali = set->SO_ROUND_SCORE;
 	srand(time(NULL));
 	n_flag = rand()%((set->SO_FLAG_MAX)-(set->SO_FLAG_MIN)+1)+(set->SO_FLAG_MIN);
-	while ((n_flag-1) > 0){
-		pt_bandierina = rand() % pt_totali+1;
-		pt_totali= pt_totali - pt_bandierina;
+	printf("PUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n",set->SO_ROUND_SCORE,n_flag);	
+	while ((n_flag) > 0){	
+		if (n_flag == 1)
+			pt_bandierina = pt_totali;
+		else {
+			media = pt_totali/n_flag;
+			pt_bandierina = rand()% media + 1;
+		}
 		do{
-			x = rand() % (set->SO_ALTEZZA);
-			y = rand() % (set->SO_BASE);
-		} while (semctl(sem_id_matrice,posizione(x,y,set->SO_BASE),GETVAL) == 0);
-		matrice[posizione(x,y,set->SO_BASE)] = -pt_bandierina;
-	}*/
-	
+			x = rand() % set->SO_ALTEZZA;
+			y = rand() % set->SO_BASE;			}
+		while (matrice[posizione(x,y,set->SO_BASE)] != 0);
+		matrice[posizione(x,y,set->SO_BASE)] = pt_bandierina;
+		pt_totali = pt_totali - pt_bandierina;
+		n_flag--;
+	}
+
 	/* STAMPO GIOCATORI */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
 	for (i = 0; i < set->SO_NUM_G; i++){
@@ -89,9 +96,11 @@ int main(){
 			if (matrice[pos] < 0)
 				printf("|%c ", -(matrice[pos++])); /* pedina */ 
 			else
-				if (matrice[pos] > 0) 	
+				if (matrice[pos] > 0 && matrice[pos] < 10 ) 	
 					printf("|%d " , matrice[pos++]); /* bandierina con relativo punteggio */
-				else
+				else if (matrice[pos] >= 10)
+					printf("|%d" , matrice[pos++]); 
+				else	
 					printf("|  ", matrice[pos++]);	 /* casella vuota */
 		}
 		printf("|\n");
