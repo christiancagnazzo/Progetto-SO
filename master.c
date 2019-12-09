@@ -29,9 +29,8 @@ int main(){
 		sem_set_val(sem_id_matrice,i,1);
 
 	/* SEMAFORI MUTUA ESCLUSIONE */
-	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
+	sem_id_mutex = semget(KEY_5,1, IPC_CREAT | 0666);
 	sem_set_val(sem_id_mutex,0,1); /* giocatore a turno piazza pedine */
-	sem_set_val(sem_id_mutex,1,1); /* pedine si posizionano una alla volta */
 
 	args[1] = NULL;
 	/* GENERAZIONE GIOCATORI E CODA PER COMUNICAZIONE */

@@ -1,7 +1,8 @@
 #include "my_lib.h"
 
 int main(int argc, const char * args[]){
-	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r, conf_id, ms_gp, ms_mg;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_gp, ms_mg;
+	int sem_id_matrice, distanza_min, r_flag, c_flag;
 	int * matrice;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
@@ -9,7 +10,7 @@ int main(int argc, const char * args[]){
 	char id_giocatore;
 	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
-	int * pos_pedine;
+	int * pos_r, * pos_c;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	
@@ -18,6 +19,8 @@ int main(int argc, const char * args[]){
 	set = shmat(conf_id, NULL, 0);
 	mat_id = shmget(KEY_1, sizeof(char)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
+	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
+
 
 	id_giocatore = -(atoi(args[0]));
 	giocatore.id = getpid();
@@ -45,23 +48,35 @@ int main(int argc, const char * args[]){
 	/* E INVIO LORO LA POSIZIONE */
 	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
 
-	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
-	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
+	/* SEMAFORO PER LA MUTUA ESCLUSIONE PEDINE */
+	sem_id_mutex = semget(KEY_5,1, IPC_CREAT | 0666);
 
-	pos_pedine = malloc(sizeof(int)*set->SO_NUM_P);
+	pos_r = malloc(sizeof(int)*set->SO_NUM_P);
+	pos_c = malloc(sizeof(int)*set->SO_NUM_P);
 
 	/* SEZIONE CRITICA */	
-	sem_reserve(sem_id_mutex,0);
+	sem_reserve(sem_id_mutex,0);		
 	for (i = 0; i < set->SO_NUM_P; i++){	
 		srand(fork_value[i]);
 		x = rand() % (set->SO_ALTEZZA);
-		y = rand() % (set->SO_BASE);	
+		y = rand() % (set->SO_BASE);
+		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,set->SO_BASE));
+    	while (rit == -1 && errno == EAGAIN){
+    	    if (posizione(x,y,set->SO_BASE) == ((set->SO_BASE*set->SO_ALTEZZA)-1)){
+        	    x = 0;
+				y = 0; /* se sono alla fine riparto dall'inizio*/
+        	}else 
+            	y = (y+1); /* provo ad andare avanti */
+        rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,set->SO_BASE));
+    	}	
+		pos_r[i] = x;
+		pos_c[i] = y; 
 		gioc_pedina.type = fork_value[i];
-		gioc_pedina.pos = posizione(x,y,set->SO_BASE);
+		gioc_pedina.r = x;	
+		gioc_pedina.c = y;	
 		gioc_pedina.giocatore = id_giocatore;
 		gioc_pedina.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*4)),0);
-		pos_pedine[i] = posizione(x,y,set->SO_BASE);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
@@ -83,16 +98,30 @@ int main(int argc, const char * args[]){
 	aspetta_zero(sem_id_zero,2);
 	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
 	
+	distanza_min = (set->SO_N_MOVES+1);
 	for (i = 0; i < set->SO_NUM_P; i++){	
-		/*for (r = 0; r < set->SO_ALTEZZA; r++){
+		for (r = 0; r < set->SO_ALTEZZA; r++){
 			for (c = 0; c < set->SO_BASE; c++){
 				if (matrice[posizione(r,c,set->SO_BASE)] > 0){
-
+					if ((abs(pos_r[i]-r)+abs(pos_c[i]-c)) <= set->SO_N_MOVES && ((abs(pos_r[i]-r)+abs(pos_c[i]-c)) < distanza_min)){
+						distanza_min = (abs(pos_r[i]-r)+abs(pos_c[i]-c)); 
+						r_flag = r;
+						c_flag = c;
+					}				
 				}
 			}
-		}*/
+		}
+		if (distanza_min == set->SO_N_MOVES+1){
+			gioc_pedina.r_b = pos_r[i];
+			gioc_pedina.c_b = pos_c[i];
+		}
+		else{	
+			gioc_pedina.r_b = r_flag;
+			gioc_pedina.c_b = c_flag;
+		}
 		gioc_pedina.type = fork_value[i];
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*4)),0);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
+		distanza_min = (set->SO_N_MOVES+1);
 	}
 	
 	aspetta_zero(sem_id_zero, 1);

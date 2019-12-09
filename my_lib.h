@@ -48,10 +48,12 @@ struct shared_set {
 
 struct msg_p_g {
 	long type;
-	int pos;
+	int r;
+	int c;
 	int mosse;
 	int giocatore;
-	int indicazione;
+	int r_b;
+	int c_b;
 };
 
 struct msg_m_g {
@@ -64,7 +66,8 @@ struct msg_m_g {
 struct statopedina
 {
     int id;
-    int pos;
+    int r;
+	int c;
     int mosse;
 	int giocatore;
 };

@@ -2,7 +2,7 @@
 
 
 int main(){
-    int conf_id, sem_id_matrice, mat_id, sem_id_mutex, sem_id_zero, ms_gp, r;
+    int conf_id, sem_id_matrice, mat_id, sem_id_mutex, sem_id_zero, ms_gp;
     int * matrice;
     struct shared_set * set;
     struct msg_p_g gioc_pedina;
@@ -19,35 +19,22 @@ int main(){
     /* SEMAFORI SCACCHIERA */
     sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
 
-    /* SEMAFORO PER LA MUTUA ESCLUSIONE */
-	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
-	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*4)), getpid(), 0);
+    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*6)), getpid(), 0);
     pedina.id = getpid();
-    pedina.pos = gioc_pedina.pos; 
+    pedina.r = gioc_pedina.r;
+    pedina.c = gioc_pedina.c;    
     pedina.mosse = gioc_pedina.mosse;
     pedina.giocatore = gioc_pedina.giocatore;
-    /* SEZIONE CRITICA */
-    sem_reserve(sem_id_mutex,1);
-    r = sem_reserve_nowait(sem_id_matrice,pedina.pos);
-    while (r == -1 && errno == EAGAIN){
-        if (pedina.pos == ((set->SO_BASE*set->SO_ALTEZZA)-1)){
-            pedina.pos = 0; /* se sono alla fine riparto dall'inizio*/
-        }else 
-            pedina.pos = ((pedina.pos) +1); /* provo ad andare avanti */
-        r = sem_reserve_nowait(sem_id_matrice,pedina.pos);
-    }
-    matrice[pedina.pos] = pedina.giocatore;   
-    sem_release(sem_id_mutex,1);  
-    /* FINE SEZIONE CRITICA */
+    matrice[posizione(pedina.r,pedina.c,set->SO_BASE)] = pedina.giocatore;   
 
     /* SBLOCCO IL GIOCATORE */
     sem_id_zero = semget(KEY_0,2, IPC_CREAT | 0666);
 	sem_reserve(sem_id_zero,1);
     
-    msgrcv(ms_gp,&gioc_pedina,sizeof(int)*4,getpid(),0);
+    /* ATTENDO LA STRATEGIA E LA LEGGO*/
+    msgrcv(ms_gp,&gioc_pedina,sizeof(int)*6,getpid(),0);
 
     /* SBLOCCO IL GIOCATORE */
     sem_reserve(sem_id_zero,1);
