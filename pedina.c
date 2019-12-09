@@ -24,7 +24,7 @@ int main(){
 	
     /* ATTENDO MESSAGGIO DAL GIOCATORE */
     ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
-    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*3)+sizeof(char)), getpid(), 0);
+    msgrcv(ms_gp, &gioc_pedina, ((sizeof(int)*4)), getpid(), 0);
     pedina.id = getpid();
     pedina.pos = gioc_pedina.pos; 
     pedina.mosse = gioc_pedina.mosse;
@@ -40,10 +40,17 @@ int main(){
         r = sem_reserve_nowait(sem_id_matrice,pedina.pos);
     }
     matrice[pedina.pos] = pedina.giocatore;   
-    sem_release(sem_id_mutex,1);
+    sem_release(sem_id_mutex,1);  
     /* FINE SEZIONE CRITICA */
 
     /* SBLOCCO IL GIOCATORE */
     sem_id_zero = semget(KEY_0,2, IPC_CREAT | 0666);
 	sem_reserve(sem_id_zero,1);
+    
+    msgrcv(ms_gp,&gioc_pedina,sizeof(int)*4,getpid(),0);
+
+    /* SBLOCCO IL GIOCATORE */
+    sem_reserve(sem_id_zero,1);
+
+    /*aspetta inizio gioco*/
 }

@@ -51,7 +51,7 @@ struct msg_p_g {
 	int pos;
 	int mosse;
 	int giocatore;
-	char indicazione;
+	int indicazione;
 };
 
 struct msg_m_g {

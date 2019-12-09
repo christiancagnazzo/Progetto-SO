@@ -87,14 +87,16 @@ int main(){
 	}
 	stampa_scacchiera(set->SO_BASE,set->SO_ALTEZZA);
 
+	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	/* AVVISO I GIOCATORI CHE POSSONO PIAZZARE LE PEDINE */
 	for (i = 0; i < set->SO_NUM_G; i++)
 		sem_reserve(sem_id_zero,2);
 
 	/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
-	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 	
+	printf("avvio il gioco\n");
+
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
@@ -108,5 +110,3 @@ int main(){
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
 }
-
-/* quando la bandierina è stata presa la setto a rossa*/

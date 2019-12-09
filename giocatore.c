@@ -1,7 +1,7 @@
 #include "my_lib.h"
 
 int main(int argc, const char * args[]){
-	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g, conf_id, ms_gp, ms_mg;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r, conf_id, ms_gp, ms_mg;
 	int * matrice;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
@@ -9,6 +9,7 @@ int main(int argc, const char * args[]){
 	char id_giocatore;
 	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
+	int * pos_pedine;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 	
@@ -39,13 +40,15 @@ int main(int argc, const char * args[]){
 				}
 		}
 	}
-	
+
 	/* CREO CODA DI MESSAGGI PER COMUNICARE CON LE PEDINE */
 	/* E INVIO LORO LA POSIZIONE */
 	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
 
 	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
 	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
+
+	pos_pedine = malloc(sizeof(int)*set->SO_NUM_P);
 
 	/* SEZIONE CRITICA */	
 	sem_reserve(sem_id_mutex,0);
@@ -57,7 +60,8 @@ int main(int argc, const char * args[]){
 		gioc_pedina.pos = posizione(x,y,set->SO_BASE);
 		gioc_pedina.giocatore = id_giocatore;
 		gioc_pedina.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*3)+sizeof(char)),0);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*4)),0);
+		pos_pedine[i] = posizione(x,y,set->SO_BASE);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
 	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
@@ -73,15 +77,27 @@ int main(int argc, const char * args[]){
 	master_giocatore.mosse_residue = giocatore.mosse_residue;
 	master_giocatore.punteggio = giocatore.punteggio;
 	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*3)),0);
-	sem_id_zero = semget(KEY_0,2, 0666);
 	sem_reserve(sem_id_zero,0);
 
 	/* ASPETTO VIA LIBERA DAL MASTER */
 	aspetta_zero(sem_id_zero,2);
-
-	/* do indicazioni pedine*/
+	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
 	
+	for (i = 0; i < set->SO_NUM_P; i++){	
+		/*for (r = 0; r < set->SO_ALTEZZA; r++){
+			for (c = 0; c < set->SO_BASE; c++){
+				if (matrice[posizione(r,c,set->SO_BASE)] > 0){
 
+				}
+			}
+		}*/
+		gioc_pedina.type = fork_value[i];
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*4)),0);
+	}
+	
+	aspetta_zero(sem_id_zero, 1);
+	
 	/* SBLOCCO IL MASTER */
 	sem_reserve(sem_id_zero,0);
+	/* e aspetto l'inizio del gioco*/
 }
