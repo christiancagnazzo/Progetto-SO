@@ -24,6 +24,7 @@
 /* 0 master aspetta giocatori */
 /* 1 giocatori aspettano pedine */
 /* 2 giocatori aspettano master */
+/* 3 pedina aspettano giocatori */
 #define KEY_1 100 /* chiave memoria matrice */
 #define KEY_2 634 /* chiave memoria settings*/
 #define KEY_3 982 /* chiave semafori matrice */
@@ -79,6 +80,10 @@ struct statogiocatore {
 	int punteggio;
 };
 
+
+
+
+int sem_reserve_wait_time(int sem_id, int sem_num);
  /*
  * Inizializzazione semaforo
  * INPUT:

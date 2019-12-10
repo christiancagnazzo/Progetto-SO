@@ -17,7 +17,7 @@ int main(int argc, const char * args[]){
 	/* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
 	conf_id = shmget(KEY_2, sizeof(int)*10, IPC_CREAT | 0600);
 	set = shmat(conf_id, NULL, 0);
-	mat_id = shmget(KEY_1, sizeof(char)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
+	mat_id = shmget(KEY_1, sizeof(int)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
 
@@ -48,8 +48,9 @@ int main(int argc, const char * args[]){
 	/* E INVIO LORO LA POSIZIONE */
 	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
 
-	/* SEMAFORO PER LA MUTUA ESCLUSIONE PEDINE */
-	sem_id_mutex = semget(KEY_5,1, IPC_CREAT | 0666);
+	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
+	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
+	sem_set_val(sem_id_mutex,1,1);
 
 	pos_r = malloc(sizeof(int)*set->SO_NUM_P);
 	pos_c = malloc(sizeof(int)*set->SO_NUM_P);
@@ -79,7 +80,7 @@ int main(int argc, const char * args[]){
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
 	}
 	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
-	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
+	sem_id_zero = semget(KEY_0, 4, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 1, set->SO_NUM_P);
 	aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
 	sem_release(sem_id_mutex,0);
@@ -98,6 +99,8 @@ int main(int argc, const char * args[]){
 	aspetta_zero(sem_id_zero,2);
 	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
 	
+
+	sem_set_val(sem_id_zero, 3, 1); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO ROUND */
 	distanza_min = (set->SO_N_MOVES+1);
 	for (i = 0; i < set->SO_NUM_P; i++){	
 		for (r = 0; r < set->SO_ALTEZZA; r++){
@@ -124,9 +127,19 @@ int main(int argc, const char * args[]){
 		distanza_min = (set->SO_N_MOVES+1);
 	}
 	
+	/* ASPETTO CHE LE PEDINE RICEVANO IL MESSAGGIO */
 	aspetta_zero(sem_id_zero, 1);
+
+	sem_set_val(sem_id_zero,2,1);
 	
 	/* SBLOCCO IL MASTER */
 	sem_reserve(sem_id_zero,0);
-	/* e aspetto l'inizio del gioco*/
+	
+	/* ATTENDO INIZIO GIOCO */
+	aspetta_zero(sem_id_zero,2);
+
+	/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
+	sem_reserve(sem_id_zero,3);
+	/*...*/
+	sleep(1);
 }

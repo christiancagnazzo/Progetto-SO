@@ -16,7 +16,7 @@ int main(){
 	/* CONFIGURAZIONE E GENERAZIONE SCACCHIERA */
 	conf_id = shmget(KEY_2, sizeof(int)*10, IPC_CREAT | 0600);
 	set = shmat(conf_id, NULL, 0);
-	mat_id = shmget(KEY_1, sizeof(int)*(set->SO_BASE)*(set->SO_ALTEZZA), IPC_CREAT | 0666);
+	mat_id = shmget(KEY_1, (sizeof(int)*(set->SO_BASE)*(set->SO_ALTEZZA)), IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 
 	/* SETTAGGIO INIZIALE MATRICE*/
@@ -53,9 +53,9 @@ int main(){
 	
 	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
-	sem_id_zero = semget(KEY_0, 3, IPC_CREAT | 0666);
+	sem_id_zero = semget(KEY_0, 4, IPC_CREAT | 0666);
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
-	sem_set_val(sem_id_zero,2,set->SO_NUM_G); /* semaforo per far attendere giocatori */
+	sem_set_val(sem_id_zero,2,1); /* semaforo per far attendere giocatori */
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 
 	/* PIAZZO BANDIERINE */
@@ -87,25 +87,33 @@ int main(){
 	stampa_scacchiera(set->SO_BASE,set->SO_ALTEZZA);
 
 	sem_set_val(sem_id_zero, 0, set->SO_NUM_G);
-	/* AVVISO I GIOCATORI CHE POSSONO PIAZZARE LE PEDINE */
-	for (i = 0; i < set->SO_NUM_G; i++)
-		sem_reserve(sem_id_zero,2);
+	sem_reserve(sem_id_zero,2);
 
 	/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-	
-	printf("avvio il gioco\n");
+
+	/*alarm(10); /* TEMPO DI GIOCO */
+	sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
+
+	/*
+	while (flag > 0){
+		read();
+	}
+	*/
+sleep(1);
+stampa_scacchiera(set->SO_BASE,set->SO_ALTEZZA);
 
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
+	/*
 	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	shmdt(matrice);
 	shmdt(set);
 	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
-	semctl(sem_id_matrice,0,IPC_RMID);
+	/*semctl(sem_id_matrice,0,IPC_RMID);
 	semctl(sem_id_mutex,0,IPC_RMID);
 	ms_gp = msgget(KEY_4, 0666);
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
-}
+*/}

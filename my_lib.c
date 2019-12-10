@@ -34,6 +34,18 @@ int sem_reserve_nowait(int sem_id, int sem_num) {
 	return semop(sem_id, &sops, 1);
 }
 
+int sem_reserve_wait_time(int sem_id, int sem_num){
+	struct sembuf sops;
+	struct timespec ts;
+
+	ts.tv_sec = 0;
+    ts.tv_nsec = 500000000;
+
+	sops.sem_num = sem_num;
+	sops.sem_op = -1;
+	sops.sem_flg = 0;
+	return semtimedop(sem_id,&sops,1,&ts);
+}
 
 /* Rilascio di una risorsa */
 int sem_release(int sem_id, int sem_num) {
