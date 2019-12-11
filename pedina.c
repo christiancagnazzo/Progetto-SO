@@ -13,8 +13,6 @@ int main(){
     ts.tv_sec = 0;
     ts.tv_nsec = set->SO_MIN_HOLD_NSEC;
 
-printf("pid %d \n",getpid());
-
     /* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
 	conf_id = shmget(KEY_2, sizeof(int)*10, IPC_CREAT | 0600);
 	set = shmat(conf_id, NULL, 0);
@@ -44,25 +42,22 @@ printf("pid %d \n",getpid());
 
     /* ATTENDO INIZIO GIOCO */
     aspetta_zero(sem_id_zero,3);
+    
+printf("giocatore %c bandierina %d %d \n",-pedina.giocatore,gioc_pedina.r_b,gioc_pedina.c_b);
+
     /* RICERCA BANDIERINE */
-    posso_muovermi_r = 1;
-    posso_muovermi_c = 1;
     r = pedina.r;
     c = pedina.c;
-    while (posso_muovermi_r > 0 || posso_muovermi_c > 0){  
-        /* MI SPOSTO PER RIGHE */  
-        while (pedina.r != gioc_pedina.r_b && pedina.mosse > 0){
-            if (pedina.r < gioc_pedina.r_b){
+    if (pedina.r < gioc_pedina.r_b){
                 rit = sem_reserve_wait_time(sem_id_matrice,posizione(r+1,c,set->SO_BASE));
                 if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_r--;
-                    break;
+                    printf("no entry \n");
+                    exit(1);
                 }
                 else {
-                    posso_muovermi_c = 1;
                     sem_reserve(sem_id_mutex,1);
                     sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
+                    nanosleep(&ts,NULL); 
                     matrice[posizione(r,c,set->SO_BASE)] = 0;
                     r++;
                     matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
@@ -71,18 +66,17 @@ printf("pid %d \n",getpid());
                     pedina.mosse--;
                 }
             }
-            else {
-                if (pedina.r > gioc_pedina.r_b){
+    else {
+        if (pedina.r > gioc_pedina.r_b){
                 rit = sem_reserve_wait_time(sem_id_matrice,posizione(r-1,c,set->SO_BASE));
                 if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_r--;
-                    break;
+                    printf("no entry \n");
+                    exit(1);
                 }
                 else {
-                    posso_muovermi_c = 1;
                     sem_reserve(sem_id_mutex,1);
                     sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
+                    nanosleep(&ts,NULL); 
                     matrice[posizione(r,c,set->SO_BASE)] = 0;
                     r--;
                     matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
@@ -91,56 +85,5 @@ printf("pid %d \n",getpid());
                     pedina.mosse--;
                 }
             }
-            }
-        }
-        /* MI SPOSTO PER COLONNE */
-        while (pedina.c != gioc_pedina.c_b && pedina.mosse > 0){
-            if (pedina.c < gioc_pedina.c_b){
-                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c+1,set->SO_BASE)); 
-                if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_c--;
-                    break;
-                }
-                else {
-                    posso_muovermi_r = 1;
-                    sem_reserve(sem_id_mutex,1);
-                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
-                    matrice[posizione(r,c,set->SO_BASE)] = 0;
-                    c++;
-                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
-                    pedina.c = c;
-                    pedina.mosse--;
-                }
-            }
-            else {
-                if (pedina.c > gioc_pedina.c_b){
-                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c-1,set->SO_BASE));
-                if (rit == -1 && errno == EAGAIN){  
-                    posso_muovermi_c--;
-                    break;
-                }
-                else {
-                    posso_muovermi_r = 1;
-                    sem_reserve(sem_id_mutex,1);
-                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
-                    matrice[posizione(r,c,set->SO_BASE)] = 0;
-                    c--;
-                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
-                    pedina.c = c;
-
-                    pedina.mosse--;
-                }
-            }
-            }
-        }   
-    /*if (pedina.mosse == 0) break;
-    if (posizione(gioc_pedina.r_b,gioc_pedina.c_b,set->SO_BASE) == posizione(pedina.r,pedina.c,set->SO_BASE)) break;
-    if ((pedina.r == gioc_pedina.r_b) && posso_muovermi_c == 0) break;
-    if ((pedina.c == gioc_pedina.c_b) && posso_muovermi_r == 0) break;*/
-    break;
-    }   
+        } 
 }

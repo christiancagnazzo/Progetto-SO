@@ -1,4 +1,4 @@
-posso_muovermi_r = 1;
+    posso_muovermi_r = 1;
     posso_muovermi_c = 1;
     r = pedina.r;
     c = pedina.c;

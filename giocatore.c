@@ -2,7 +2,7 @@
 
 int main(int argc, const char * args[]){
 	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_gp, ms_mg;
-	int sem_id_matrice, distanza_min, r_flag, c_flag;
+	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, del;
 	int * matrice;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
@@ -10,7 +10,7 @@ int main(int argc, const char * args[]){
 	char id_giocatore;
 	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
-	int * pos_r, * pos_c;
+	int * pos_r, * pos_c, * band_r, * band_c;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
 
@@ -99,18 +99,31 @@ int main(int argc, const char * args[]){
 	
 	sem_set_val(sem_id_zero, 3, set->SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO ROUND */
 	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
-	distanza_min = (set->SO_N_MOVES+1);
-	for (i = 0; i < set->SO_NUM_P; i++){	
-		for (r = 0; r < set->SO_ALTEZZA; r++){
-			for (c = 0; c < set->SO_BASE; c++){
-				if (matrice[posizione(r,c,set->SO_BASE)] > 0){
-					if ((abs(pos_r[i]-r)+abs(pos_c[i]-c)) <= set->SO_N_MOVES && ((abs(pos_r[i]-r)+abs(pos_c[i]-c)) < distanza_min)){
-						distanza_min = (abs(pos_r[i]-r)+abs(pos_c[i]-c)); 
-						r_flag = r;
-						c_flag = c;
-					}				
-				}
+	band_r = malloc(sizeof(int)*set->SO_FLAG_MAX);
+	band_c = malloc(sizeof(int)*set->SO_FLAG_MAX);
+	cont = 0;
+	i = 0;
+	for (r = 0; r < set->SO_ALTEZZA; r++){
+		for (c = 0; c < set->SO_BASE; c++){
+			if (matrice[posizione(r,c,set->SO_BASE)] > 0){
+				cont++;
+				band_r[i] = r;
+				band_c[i++] = c;
 			}
+		}
+	}	
+
+	distanza_min = (set->SO_N_MOVES+1);
+	for (i = 0; i < set->SO_NUM_P; i++){
+		for (b = 0; b < cont; b++ ){
+			if ((((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) <= set->SO_N_MOVES) 
+						&& (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) < distanza_min))
+				if (band_r[b] >= 0){	
+					distanza_min = ((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b])));
+					del = b;
+					r_flag = band_r[b];
+					c_flag = band_c[b];
+				}
 		}
 		if (distanza_min > set->SO_N_MOVES){
 			gioc_pedina.r_b = pos_r[i];
@@ -119,6 +132,7 @@ int main(int argc, const char * args[]){
 		else{	
 			gioc_pedina.r_b = r_flag;
 			gioc_pedina.c_b = c_flag;
+			band_r[del] = -1;
 		}
 		gioc_pedina.type = fork_value[i];
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
@@ -138,4 +152,5 @@ int main(int argc, const char * args[]){
 	/*...*/
 
 while (wait(NULL) != -1);
+
 }
