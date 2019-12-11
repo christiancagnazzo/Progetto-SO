@@ -43,47 +43,79 @@ int main(){
     /* ATTENDO INIZIO GIOCO */
     aspetta_zero(sem_id_zero,3);
     
-printf("giocatore %c bandierina %d %d \n",-pedina.giocatore,gioc_pedina.r_b,gioc_pedina.c_b);
-
     /* RICERCA BANDIERINE */
     r = pedina.r;
     c = pedina.c;
-    if (pedina.r < gioc_pedina.r_b){
-                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r+1,c,set->SO_BASE));
-                if (rit == -1 && errno == EAGAIN){
-                    printf("no entry \n");
-                    exit(1);
-                }
-                else {
-                    sem_reserve(sem_id_mutex,1);
-                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); 
-                    matrice[posizione(r,c,set->SO_BASE)] = 0;
-                    r++;
-                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
-                    pedina.r = r;
-                    pedina.mosse--;
-                }
+    while ((pedina.r != gioc_pedina.r_b || pedina.c != gioc_pedina.c_b) && pedina.mosse > 0){  
+        /* SPOSTAMENTO PER RIGA */
+        if (pedina.r < gioc_pedina.r_b){
+            rit = sem_reserve_wait_time(sem_id_matrice,posizione(r+1,c,set->SO_BASE));
+            if (rit == -1 && errno == EAGAIN){
+                printf("no entry \n");
+                exit(1);
             }
-    else {
-        if (pedina.r > gioc_pedina.r_b){
+            else {
+                sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
+                nanosleep(&ts,NULL); 
+                matrice[posizione(r,c,set->SO_BASE)] = 0;
+                r++;
+                matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
+                pedina.r = r;
+                pedina.mosse--;
+            }
+        }
+        else {
+            if (pedina.r > gioc_pedina.r_b){
                 rit = sem_reserve_wait_time(sem_id_matrice,posizione(r-1,c,set->SO_BASE));
                 if (rit == -1 && errno == EAGAIN){
                     printf("no entry \n");
                     exit(1);
                 }
                 else {
-                    sem_reserve(sem_id_mutex,1);
                     sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
                     nanosleep(&ts,NULL); 
                     matrice[posizione(r,c,set->SO_BASE)] = 0;
                     r--;
                     matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
                     pedina.r = r;
                     pedina.mosse--;
                 }
             }
-        } 
+        }
+        /* SPOSTAMENTO PER COLONNA */
+        if (pedina.c < gioc_pedina.c_b){
+            rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c+1,set->SO_BASE));
+            if (rit == -1 && errno == EAGAIN){
+                printf("no entry \n");
+                exit(1);
+            }
+            else {
+                sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
+                nanosleep(&ts,NULL); 
+                matrice[posizione(r,c,set->SO_BASE)] = 0;
+                c++;
+                matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
+                pedina.c = c;
+                pedina.mosse--;
+            }
+        }
+        else {
+            if (pedina.c > gioc_pedina.c_b){
+                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c-1,set->SO_BASE));
+                if (rit == -1 && errno == EAGAIN){
+                    printf("no entry \n");
+                    exit(1);
+                }
+                else {
+                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
+                    nanosleep(&ts,NULL); 
+                    matrice[posizione(r,c,set->SO_BASE)] = 0;
+                    c--;
+                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
+                    pedina.c = c;
+                    pedina.mosse--;
+                }
+            }
+        }
+    }
 }
