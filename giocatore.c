@@ -13,14 +13,13 @@ int main(int argc, const char * args[]){
 	int * pos_r, * pos_c;
 
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
-	
+
 	/* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
 	conf_id = shmget(KEY_2, sizeof(int)*10, IPC_CREAT | 0600);
 	set = shmat(conf_id, NULL, 0);
 	mat_id = shmget(KEY_1, sizeof(int)*set->SO_BASE*set->SO_ALTEZZA, IPC_CREAT | 0666);
 	matrice = shmat(mat_id, NULL, 0);
 	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
-
 
 	id_giocatore = -(atoi(args[0]));
 	giocatore.id = getpid();
@@ -97,10 +96,9 @@ int main(int argc, const char * args[]){
 
 	/* ASPETTO VIA LIBERA DAL MASTER */
 	aspetta_zero(sem_id_zero,2);
-	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
 	
-
-	sem_set_val(sem_id_zero, 3, 1); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO ROUND */
+	sem_set_val(sem_id_zero, 3, set->SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO ROUND */
+	sem_set_val(sem_id_zero, 1, set->SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE */
 	distanza_min = (set->SO_N_MOVES+1);
 	for (i = 0; i < set->SO_NUM_P; i++){	
 		for (r = 0; r < set->SO_ALTEZZA; r++){
@@ -114,7 +112,7 @@ int main(int argc, const char * args[]){
 				}
 			}
 		}
-		if (distanza_min == set->SO_N_MOVES+1){
+		if (distanza_min > set->SO_N_MOVES){
 			gioc_pedina.r_b = pos_r[i];
 			gioc_pedina.c_b = pos_c[i];
 		}
@@ -126,12 +124,8 @@ int main(int argc, const char * args[]){
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
 		distanza_min = (set->SO_N_MOVES+1);
 	}
-	
-	/* ASPETTO CHE LE PEDINE RICEVANO IL MESSAGGIO */
-	aspetta_zero(sem_id_zero, 1);
 
-	sem_set_val(sem_id_zero,2,1);
-	
+	sem_set_val(sem_id_zero,2,1);	
 	/* SBLOCCO IL MASTER */
 	sem_reserve(sem_id_zero,0);
 	
@@ -139,7 +133,9 @@ int main(int argc, const char * args[]){
 	aspetta_zero(sem_id_zero,2);
 
 	/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
-	sem_reserve(sem_id_zero,3);
+	sem_set_val(sem_id_mutex,1,1);
+	sem_reserve(sem_id_zero,3);	
 	/*...*/
-	sleep(1);
+
+while (wait(NULL) != -1);
 }

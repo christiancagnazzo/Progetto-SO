@@ -100,20 +100,20 @@ int main(){
 		read();
 	}
 	*/
-sleep(1);
+
+while (wait(NULL) != -1);
 stampa_scacchiera(set->SO_BASE,set->SO_ALTEZZA);
 
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
-	/*
 	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	shmdt(matrice);
 	shmdt(set);
 	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
-	/*semctl(sem_id_matrice,0,IPC_RMID);
+	semctl(sem_id_matrice,0,IPC_RMID);
 	semctl(sem_id_mutex,0,IPC_RMID);
 	ms_gp = msgget(KEY_4, 0666);
 	msgctl(ms_gp,IPC_RMID,NULL);
 	msgctl(ms_mg,IPC_RMID,NULL);
-*/}
+}
