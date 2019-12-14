@@ -55,12 +55,13 @@ struct msg_p_g {
 	int giocatore;
 	int r_b;
 	int c_b;
+	int bandierina;
 };
 
 struct msg_m_g {
 	long type;
 	int mosse_residue;
-	int punteggio;
+	int bandierina;
 	int giocatore;
 };
 

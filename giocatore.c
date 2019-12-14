@@ -7,7 +7,6 @@ int main(int argc, const char * args[]){
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
 	int * fork_value;
-	char id_giocatore;
 	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
 	int * pos_r, * pos_c, * band_r, * band_c;
@@ -21,10 +20,9 @@ int main(int argc, const char * args[]){
 	matrice = shmat(mat_id, NULL, 0);
 	sem_id_matrice = semget(KEY_3,(set->SO_ALTEZZA*set->SO_BASE), IPC_CREAT | 0666);
 
-	id_giocatore = -(atoi(args[0]));
+	giocatore.giocatore = -(atoi(args[0]));
 	giocatore.id = getpid();
-	giocatore.giocatore = id_giocatore;
-	giocatore.mosse_residue = (set->SO_N_MOVES*set->SO_NUM_P);
+	giocatore.mosse_residue = 0;
 	giocatore.punteggio = 0;
 	
 	/* CREAZIONE PEDINE */
@@ -45,21 +43,22 @@ int main(int argc, const char * args[]){
 
 	/* CREO CODA DI MESSAGGI PER COMUNICARE CON LE PEDINE */
 	/* E INVIO LORO LA POSIZIONE */
-	ms_gp = msgget(KEY_4, IPC_CREAT | 0666);
+	ms_gp = msgget(getpid(), IPC_CREAT | 0666);
 
 	/* SEMAFORO PER LA MUTUA ESCLUSIONE */
-	sem_id_mutex = semget(KEY_5,2, IPC_CREAT | 0666);
-	sem_set_val(sem_id_mutex,1,1);
+	sem_id_mutex = semget(KEY_5,set->SO_NUM_G, IPC_CREAT | 0666); /* giocatore a turno piazza pedine */
 
 	pos_r = malloc(sizeof(int)*set->SO_NUM_P);
 	pos_c = malloc(sizeof(int)*set->SO_NUM_P);
 
-	/* SEZIONE CRITICA */	
-	sem_reserve(sem_id_mutex,0);		
+	sem_id_zero = semget(KEY_0, 4, IPC_CREAT | 0666);
+
+	/* INDICAZIONI INIZIALI PEDINE */		
 	for (i = 0; i < set->SO_NUM_P; i++){	
 		srand(fork_value[i]);
 		x = rand() % (set->SO_ALTEZZA);
 		y = rand() % (set->SO_BASE);
+		sem_reserve(sem_id_mutex,(-giocatore.giocatore)-65);
 		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,set->SO_BASE));
     	while (rit == -1 && errno == EAGAIN){
     	    if (posizione(x,y,set->SO_BASE) == ((set->SO_BASE*set->SO_ALTEZZA)-1)){
@@ -74,23 +73,21 @@ int main(int argc, const char * args[]){
 		gioc_pedina.type = fork_value[i];
 		gioc_pedina.r = x;	
 		gioc_pedina.c = y;	
-		gioc_pedina.giocatore = id_giocatore;
+		gioc_pedina.giocatore = giocatore.giocatore;
 		gioc_pedina.mosse = set->SO_N_MOVES;
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
+		sem_set_val(sem_id_zero, 1, 1);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
+		/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
+		aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */	
+		sem_release(sem_id_mutex,((-giocatore.giocatore)-65+1)%set->SO_NUM_G);
 	}
-	/* SEMAFORO PER ATTENDERE CHE LE MIE PEDINE SI PIAZZINO */
-	sem_id_zero = semget(KEY_0, 4, IPC_CREAT | 0666);
-	sem_set_val(sem_id_zero, 1, set->SO_NUM_P);
-	aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
-	sem_release(sem_id_mutex,0);
-	/* FINE SEZIONE CRITICA*/
 	
 	/* SBLOCCO IL MASTER E DO IL MIO STATO */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
 	master_giocatore.type = giocatore.id; /* PID */
 	master_giocatore.giocatore = giocatore.giocatore;
 	master_giocatore.mosse_residue = giocatore.mosse_residue;
-	master_giocatore.punteggio = giocatore.punteggio;
+	master_giocatore.bandierina = 0;
 	msgsnd(ms_mg,&master_giocatore,((sizeof(int)*3)),0);
 	sem_reserve(sem_id_zero,0);
 
@@ -135,7 +132,7 @@ int main(int argc, const char * args[]){
 			band_r[del] = -1;
 		}
 		gioc_pedina.type = fork_value[i];
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*6)),0);
+		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
 		distanza_min = (set->SO_N_MOVES+1);
 	}
 
@@ -147,10 +144,16 @@ int main(int argc, const char * args[]){
 	aspetta_zero(sem_id_zero,2);
 
 	/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
-	sem_set_val(sem_id_mutex,1,1);
 	sem_reserve(sem_id_zero,3);	
-	/*...*/
-
-while (wait(NULL) != -1);
-
+	for (i = 0; i < set->SO_NUM_P; i++){
+		msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,fork_value[i],0);
+		master_giocatore.type = 1;
+		master_giocatore.giocatore = giocatore.giocatore;
+		master_giocatore.bandierina = gioc_pedina.bandierina;
+		master_giocatore.mosse_residue = gioc_pedina.mosse;
+		msgsnd(ms_mg,&master_giocatore,sizeof(int)*3,0);
+		giocatore.mosse_residue+= gioc_pedina.mosse;
+		giocatore.punteggio+= gioc_pedina.bandierina; 
+		
+	}
 }

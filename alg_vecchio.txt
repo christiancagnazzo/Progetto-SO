@@ -1,98 +1,85 @@
-    posso_muovermi_r = 1;
+    /* RICERCA BANDIERINE */
     posso_muovermi_c = 1;
+    posso_muovermi_r = 1;
     r = pedina.r;
     c = pedina.c;
-    while (posso_muovermi_r > 0 || posso_muovermi_c > 0){  
-        /* MI SPOSTO PER RIGHE */  
-        while (pedina.r != gioc_pedina.r_b && pedina.mosse > 0){
-            if (pedina.r < gioc_pedina.r_b){
-                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r+1,c,set->SO_BASE));
-                if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_r--;
-                    break;
-                }
-                else {
-                    posso_muovermi_c = 1;
-                    sem_reserve(sem_id_mutex,1);
-                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
-                    matrice[posizione(r,c,set->SO_BASE)] = 0;
-                    r++;
-                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
-                    pedina.r = r;
-                    pedina.mosse--;
-                }
+    while ((pedina.r != gioc_pedina.r_b || pedina.c != gioc_pedina.c_b) && pedina.mosse > 0){  
+        /* SPOSTAMENTO PER RIGA */
+        if (pedina.r < gioc_pedina.r_b){
+            rit = sem_reserve_wait_time(sem_id_matrice,posizione(r+1,c,set->SO_BASE));
+            if (rit == -1 && errno == EAGAIN){
+                break;
+                posso_muovermi_r = 0;
+                if (posso_muovermi_c = 0) break;
             }
             else {
-                if (pedina.r > gioc_pedina.r_b){
+                posso_muovermi_c = 1;
+                sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
+                nanosleep(&ts,NULL); 
+                matrice[posizione(r,c,set->SO_BASE)] = 0;
+                r++;
+                matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
+                pedina.r = r;
+                pedina.mosse--;
+            }
+        }
+        else {
+            if (pedina.r > gioc_pedina.r_b){
                 rit = sem_reserve_wait_time(sem_id_matrice,posizione(r-1,c,set->SO_BASE));
                 if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_r--;
                     break;
+                    posso_muovermi_r = 0;
+                    if (posso_muovermi_c = 0) break;
                 }
                 else {
-                    posso_muovermi_c = 1;
-                    sem_reserve(sem_id_mutex,1);
+                    posso_muovermi_c  = 1;
                     sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
+                    nanosleep(&ts,NULL); 
                     matrice[posizione(r,c,set->SO_BASE)] = 0;
                     r--;
                     matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
                     pedina.r = r;
                     pedina.mosse--;
                 }
             }
-            }
         }
-        /* MI SPOSTO PER COLONNE */
-        while (pedina.c != gioc_pedina.c_b && pedina.mosse > 0){
-            if (pedina.c < gioc_pedina.c_b){
-                rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c+1,set->SO_BASE)); 
-                if (rit == -1 && errno == EAGAIN){
-                    posso_muovermi_c--;
-                    break;
-                }
-                else {
-                    posso_muovermi_r = 1;
-                    sem_reserve(sem_id_mutex,1);
-                    sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
-                    matrice[posizione(r,c,set->SO_BASE)] = 0;
-                    c++;
-                    matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
-                    pedina.c = c;
-                    pedina.mosse--;
-                }
+        /* SPOSTAMENTO PER COLONNA */
+        if (pedina.c < gioc_pedina.c_b){
+            rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c+1,set->SO_BASE));
+            if (rit == -1 && errno == EAGAIN){
+                break;
+                posso_muovermi_c = 0;
+                if (posso_muovermi_r = 0) break;
             }
             else {
-                if (pedina.c > gioc_pedina.c_b){
+                posso_muovermi_r = 1;
+                sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
+                nanosleep(&ts,NULL); 
+                matrice[posizione(r,c,set->SO_BASE)] = 0;
+                c++;
+                matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
+                pedina.c = c;
+                pedina.mosse--;
+            }
+        }
+        else {
+            if (pedina.c > gioc_pedina.c_b){
                 rit = sem_reserve_wait_time(sem_id_matrice,posizione(r,c-1,set->SO_BASE));
-                if (rit == -1 && errno == EAGAIN){  
-                    posso_muovermi_c--;
+                if (rit == -1 && errno == EAGAIN){
                     break;
+                    posso_muovermi_c = 0;
+                    if (posso_muovermi_r = 0) break;
                 }
                 else {
                     posso_muovermi_r = 1;
-                    sem_reserve(sem_id_mutex,1);
                     sem_release(sem_id_matrice,posizione(r,c,set->SO_BASE));
-                    nanosleep(&ts,NULL); /* controllare */
+                    nanosleep(&ts,NULL); 
                     matrice[posizione(r,c,set->SO_BASE)] = 0;
                     c--;
                     matrice[posizione(r,c,set->SO_BASE)] = pedina.giocatore;
-                    sem_release(sem_id_mutex,1);
                     pedina.c = c;
-
                     pedina.mosse--;
                 }
             }
-            }
-        }   
-    /*if (pedina.mosse == 0) break;
-    if (posizione(gioc_pedina.r_b,gioc_pedina.c_b,set->SO_BASE) == posizione(pedina.r,pedina.c,set->SO_BASE)) break;
-    if ((pedina.r == gioc_pedina.r_b) && posso_muovermi_c == 0) break;
-    if ((pedina.c == gioc_pedina.c_b) && posso_muovermi_r == 0) break;*/
-    break;
-    }   
+        }
+    }
