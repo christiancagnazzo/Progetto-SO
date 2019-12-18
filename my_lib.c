@@ -39,7 +39,7 @@ int sem_reserve_wait_time(int sem_id, int sem_num){
 	struct timespec ts;
 
 	ts.tv_sec = 0;
-    ts.tv_nsec = 10000000000;
+    ts.tv_nsec = 100000000;
 
 	sops.sem_num = sem_num;
 	sops.sem_op = -1;
@@ -155,4 +155,5 @@ void stampa_scacchiera(int base, int altezza){
 		printf(BLUE"|\n"RESET);
 	}
 }
+
 

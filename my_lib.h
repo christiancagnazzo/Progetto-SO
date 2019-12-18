@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <sys/msg.h>
 #include <time.h>
+#include <signal.h>
 
 #define GREEN   "\x1b[32m"
 #define YELLOW  "\x1b[33m"
@@ -33,6 +34,7 @@
 /* semaforo 0 mutua esclusione giocatore piazza pedine */
 /* semaforo 1 mutua esclusione pedina si posizionano */
 #define KEY_6 145 /* master giocatore*/
+#define KEY_7 761
 
 struct shared_set {
 	int SO_NUM_G; 
@@ -49,19 +51,19 @@ struct shared_set {
 
 struct msg_p_g {
 	long type;
-	int r;
-	int c;
+	int r; /* riga in cui posizionarsi */
+	int c; /* colonna in cui posizionarsi */
 	int mosse;
 	int giocatore;
-	int r_b;
-	int c_b;
-	int bandierina;
+	int r_b; /* riga bandierina obiettivo */
+	int c_b; /* colonna bandierina obiettivo */
+	int bandierina; /* punteggio bandierina presa */
 };
 
 struct msg_m_g {
 	long type;
 	int mosse_residue;
-	int bandierina;
+	int bandierina;/* punteggio bandierina presa */
 	int giocatore;
 };
 
