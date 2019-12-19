@@ -2,7 +2,7 @@
 
 
 int main(){
-    int SO_BASE, SO_ALTEZZA, SO_MIN_HOLD_NSEC, sem_round;
+    int SO_BASE, SO_ALTEZZA, SO_MIN_HOLD_NSEC, SO_NUM_G,sem_round, g;
     int conf_id, sem_id_matrice, mat_id, sem_id_zero, ms_gp, r, c, posso_muovermi_c, posso_muovermi_r, rit, bandierina;
     int * matrice;
     struct shared_set * set;
@@ -17,6 +17,7 @@ int main(){
 	set = shmat(conf_id, NULL, 0);
 	SO_BASE = set->SO_BASE;
 	SO_ALTEZZA = set->SO_ALTEZZA;
+    SO_NUM_G = set->SO_NUM_G;
 	SO_MIN_HOLD_NSEC = set->SO_MIN_HOLD_NSEC;
     ts.tv_sec = 0;
     ts.tv_nsec = SO_MIN_HOLD_NSEC;
@@ -38,12 +39,15 @@ int main(){
     sem_id_zero = semget(KEY_0,4, IPC_CREAT | 0666);
 	sem_reserve(sem_id_zero,1);
 
+sem_round = semget(KEY_7,2,0666|IPC_CREAT); 
+
+while(1){
     /* ATTENDO LA STRATEGIA */
     msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,getpid(),0);
 
     /* ATTENDO INIZIO GIOCO */
     aspetta_zero(sem_id_zero,3);
-    /* RICERCA BANDIERINE */
+     /* RICERCA BANDIERINE */
     bandierina = 0;  
     r = pedina.r;
     c = pedina.c;
@@ -157,8 +161,12 @@ int main(){
         gioc_pedina.type = getpid();
         gioc_pedina.mosse = pedina.mosse;
         gioc_pedina.bandierina = bandierina;
-        msgsnd(ms_gp,&gioc_pedina,sizeof(int)*7,0); 
+        msgsnd(ms_gp,&gioc_pedina,sizeof(int)*7,0);
     }
+    sem_set_val(sem_round,1,SO_NUM_G);
+    aspetta_zero(sem_round,1);
+}
+
 }
 
 

@@ -1,14 +1,14 @@
 #include "my_lib.h"
 
 void handle_signal(int signal);
-int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_gp,ms_mg;
+int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_gp,ms_mg, sem_round, SO_BASE, SO_ALTEZZA, SO_NUM_G;
 int * matrice, * fork_value;
 struct shared_set  * set;
 
 int main(){
-	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_NUM_P, SO_MAX_TIME, SO_FLAG_MIN, SO_FLAG_MAX, SO_ROUND_SCORE, SO_N_MOVES, SO_MIN_HOLD_NSEC;
-	int i,x,y, pos, n_flag;
-	int pt_bandierina, pt_totali, media, flag, sem_round, contamosse;
+	int SO_NUM_P, SO_MAX_TIME, SO_FLAG_MIN, SO_FLAG_MAX, SO_ROUND_SCORE, SO_N_MOVES, SO_MIN_HOLD_NSEC;
+	int i,x,y, pos, n_flag, g;
+	int pt_bandierina, pt_totali, media, flag, contamosse;
 	int * punteggio_g, * mosse_g;
 	struct msg_m_g master_giocatore;
 	char * args[2];
@@ -17,7 +17,7 @@ int main(){
 	struct sigaction sa;
 	bzero(&sa,sizeof(sa));
 	sa.sa_handler = handle_signal;
-	sigaction(SIGINT,&sa,NULL);
+	/*sigaction(SIGINT,&sa,NULL);*/
 	sigaction(SIGALRM,&sa,NULL);
 
 	/* CONFIGURAZIONE E GENERAZIONE SCACCHIERA */
@@ -82,9 +82,16 @@ int main(){
 		}
 	}
 
+	sem_round = semget(KEY_7,2,0666 | IPC_CREAT);
+	sem_set_val(sem_round,0,1);
+	
+	contamosse = 1;
+	while (contamosse > 0){
 	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
 	sem_set_val(sem_id_zero, 0, SO_NUM_G);
 	sem_set_val(sem_id_zero,2,1);
+	
+	sem_reserve(sem_round,0);
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 
 	/* PIAZZO BANDIERINE */
@@ -119,24 +126,35 @@ int main(){
 	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 
 
-	/*alarm(SO_MAX_TIME);*/
+	alarm(SO_MAX_TIME);
 	sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
 
 	for (i = 0; i < SO_NUM_G*SO_NUM_P; i++) {
 		msgrcv(ms_mg,&master_giocatore,sizeof(int)*3,1,0);
+		mosse_g[i] = 0;
 		mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;
 		punteggio_g[(-master_giocatore.giocatore)-65]+= master_giocatore.bandierina;
 		if (master_giocatore.bandierina > 0) flag--;
 		}
-	/*while (flag > 0);
-	alarm(0);*/
+	while (flag > 0);
+	alarm(0);
 	
 	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-
+/*i =0;
+for (x = 0; x<SO_ALTEZZA;x++){
+	printf("\n");
+	for (y= 0; y<SO_BASE; y++){
+		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
+	}
+}*/
+	contamosse = 0;
 	for (i = 0; i < SO_NUM_G; i++){
 		printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
+		contamosse = contamosse + mosse_g[i];
 		}
-	
+}
+	for (i = 0; i < SO_NUM_G; i++)
+		kill(fork_value[i],SIGINT);
 	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
@@ -146,22 +164,25 @@ int main(){
 	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
 	semctl(sem_id_matrice,0,IPC_RMID);
 	semctl(sem_id_mutex,0,IPC_RMID);
+	semctl(sem_round,0,IPC_RMID);
 	msgctl(ms_mg,IPC_RMID,NULL);
 }
 
 
 void handle_signal(int signal){
 	int i;
-	printf("Handler master");
-	for (i = 0; i < 2; i++)
+	printf("PARTITA FINITA\n");
+	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
-	shmdt(matrice);
-	shmdt(set);
+	semctl(sem_round,0,IPC_RMID);
 	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
 	semctl(sem_id_matrice,0,IPC_RMID);
 	semctl(sem_id_mutex,0,IPC_RMID);
 	msgctl(ms_mg,IPC_RMID,NULL);
+	shmdt(matrice);
+	shmdt(set);
 	exit(1);
 }

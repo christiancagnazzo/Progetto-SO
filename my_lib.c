@@ -38,8 +38,8 @@ int sem_reserve_wait_time(int sem_id, int sem_num){
 	struct sembuf sops;
 	struct timespec ts;
 
-	ts.tv_sec = 0;
-    ts.tv_nsec = 100000000;
+	ts.tv_sec = 1;
+    ts.tv_nsec = 0;
 
 	sops.sem_num = sem_num;
 	sops.sem_op = -1;

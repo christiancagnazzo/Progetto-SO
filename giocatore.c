@@ -1,13 +1,12 @@
 #include "my_lib.h"
 
 int * fork_value;
-int ms_gp;
-
+int ms_gp, SO_NUM_P;
 void handle_signal(int signal);
 
 
 int main(int argc, const char * args[]){
-	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_NUM_P, SO_N_MOVES, SO_FLAG_MAX;
+	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_N_MOVES, SO_FLAG_MAX;
 	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_mg;
 	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, del, sem_round;
 	int * matrice, * pos_r, * pos_c, * band_r, * band_c;
@@ -16,10 +15,10 @@ int main(int argc, const char * args[]){
 	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
 
-	struct sigaction sa;
-	bzero(&sa,sizeof(sa));
-	sa.sa_handler = handle_signal;
-	sigaction(SIGINT,&sa,NULL);
+	struct sigaction sa1;
+	bzero(&sa1,sizeof(sa1));
+	sa1.sa_handler = handle_signal;
+	sigaction(SIGINT,&sa1,NULL);
 
 	/* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
@@ -64,18 +63,36 @@ int main(int argc, const char * args[]){
 				}
 		}
 	}
-
+	x = 0;
+	y = 0;
 	/* INDICAZIONI INIZIALI PEDINE */	
 	pos_r = malloc(sizeof(int)*SO_NUM_P); /* righe mie pedine */
 	pos_c = malloc(sizeof(int)*SO_NUM_P); /* colonne mie pedine */	
 	for (i = 0; i < SO_NUM_P; i++){	
-		srand(fork_value[i]);
-		x = rand() % (SO_ALTEZZA);
-		y = rand() % (SO_BASE);
-		/* SEZ. CRITICA */
+		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA){
+			switch(-giocatore.giocatore){
+				case 65:	
+					if (i < 5) x = 4;
+					else x = 12;
+					if (y >= 50) y = 10;
+					else y = y + 10;
+					break;
+				case 66:
+					if (i < 5) x = 8;
+					else x = 16;
+					if (y >= 50) y = 10;
+					else y = y + 10;
+					break;
+				}
+			}
+			else {
+				srand(fork_value[i]);
+				x = rand() % (SO_ALTEZZA);
+				y = rand() % (SO_BASE);
+			}
 		sem_reserve(sem_id_mutex,(-giocatore.giocatore)-65);
-		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,SO_BASE));
-    	while (rit == -1 && errno == EAGAIN){
+		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,SO_BASE));	
+		while (rit == -1 && errno == EAGAIN){
     	    if (posizione(x,y,SO_BASE) == ((SO_BASE*SO_ALTEZZA)-1)){
         	    x = 0;
 				y = 0; /* se sono alla fine riparto dall'inizio*/
@@ -92,18 +109,19 @@ int main(int argc, const char * args[]){
 		gioc_pedina.mosse = SO_N_MOVES;
 		sem_set_val(sem_id_zero, 1, 1);
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
-		/* ATTENDO CHE LA MIA PEDINA SI PIAZZI */
-		aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */	
-		/* FINE SEZIONE CRITICA */
+		aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
 		sem_release(sem_id_mutex,((-giocatore.giocatore)-65+1)%SO_NUM_G);
 	}
 	
-
+	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT);	
+	sem_set_val(sem_round,1,SO_NUM_G);
+	
+while(1){
 	/* SBLOCCO IL MASTER E DO IL MIO STATO */
 	sem_reserve(sem_id_zero,0);
-
 	/* ASPETTO VIA LIBERA DAL MASTER */
 	aspetta_zero(sem_id_zero,2);
+	sem_reserve(sem_round,1);
 	
 	sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
 	/*sem_set_val(sem_id_zero, 1, SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE -------------------?????----------------------------------*/
@@ -142,7 +160,7 @@ int main(int argc, const char * args[]){
 		else{	
 			gioc_pedina.r_b = r_flag;
 			gioc_pedina.c_b = c_flag;
-			band_r[del] = -1;
+			if ((SO_NUM_P*SO_NUM_G)/cont < 10) band_r[del] = -1;
 		}
 		gioc_pedina.type = fork_value[i];
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
@@ -168,13 +186,19 @@ int main(int argc, const char * args[]){
 		giocatore.mosse_residue+= gioc_pedina.mosse;
 		giocatore.punteggio+= gioc_pedina.bandierina; 
 	}
+	sem_set_val(sem_round,0,1);
+	aspetta_zero(sem_round,0);
+}
+	for (i = 0; i < 2; i++)
+		kill(fork_value[i],SIGINT);
+	msgctl(ms_gp,IPC_RMID,NULL);
 }
 
 void handle_signal(int signal){
 	int i;
-	printf("Handler giocatori");
+	printf("figlio");
 	msgctl(ms_gp,IPC_RMID,NULL);
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < SO_NUM_P; i++)
 		kill(fork_value[i],SIGINT);
 	exit(1);	
 }
