@@ -151,7 +151,7 @@ for (x = 0; x<SO_ALTEZZA;x++){
 	for (i = 0; i < SO_NUM_G; i++){
 		printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
 		contamosse = contamosse + mosse_g[i];
-		}
+		}	
 }
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);

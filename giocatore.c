@@ -69,7 +69,7 @@ int main(int argc, const char * args[]){
 	pos_r = malloc(sizeof(int)*SO_NUM_P); /* righe mie pedine */
 	pos_c = malloc(sizeof(int)*SO_NUM_P); /* colonne mie pedine */	
 	for (i = 0; i < SO_NUM_P; i++){	
-		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA){
+		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA == 20){
 			switch(-giocatore.giocatore){
 				case 65:	
 					if (i < 5) x = 4;
@@ -115,7 +115,9 @@ int main(int argc, const char * args[]){
 	
 	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT);	
 	sem_set_val(sem_round,1,SO_NUM_G);
-	
+
+band_r = malloc(sizeof(int)); /* righe bandierine */
+band_c = malloc(sizeof(int)); /* colonne bandierine */	
 while(1){
 	/* SBLOCCO IL MASTER E DO IL MIO STATO */
 	sem_reserve(sem_id_zero,0);
@@ -124,9 +126,6 @@ while(1){
 	sem_reserve(sem_round,1);
 	
 	sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
-	/*sem_set_val(sem_id_zero, 1, SO_NUM_P); /* SEMAFORO PER ASPETTARE LE PEDINE -------------------?????----------------------------------*/
-	band_r = malloc(sizeof(int)); /* righe bandierine */
-	band_c = malloc(sizeof(int)); /* colonne bandierine */
 	cont = 0;
 	i = 0;
 	for (r = 0; r < SO_ALTEZZA; r++){
@@ -196,7 +195,6 @@ while(1){
 
 void handle_signal(int signal){
 	int i;
-	printf("figlio");
 	msgctl(ms_gp,IPC_RMID,NULL);
 	for (i = 0; i < SO_NUM_P; i++)
 		kill(fork_value[i],SIGINT);
