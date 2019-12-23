@@ -135,9 +135,10 @@ int main(){
 		mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;
 		punteggio_g[(-master_giocatore.giocatore)-65]+= master_giocatore.bandierina;
 		if (master_giocatore.bandierina > 0) flag--;
+		if (flag == 0) alarm(0);
 		}
 	while (flag > 0);
-	alarm(0);
+	
 	
 	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
 /*i =0;
@@ -152,6 +153,7 @@ for (x = 0; x<SO_ALTEZZA;x++){
 		printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
 		contamosse = contamosse + mosse_g[i];
 		}	
+	sleep(1);	
 }
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
@@ -170,9 +172,16 @@ for (x = 0; x<SO_ALTEZZA;x++){
 
 
 void handle_signal(int signal){
-	int i;
+	int i,x, y;
 	printf("PARTITA FINITA\n");
 	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+	i =0;
+for (x = 0; x<SO_ALTEZZA;x++){
+	printf("\n");
+	for (y= 0; y<SO_BASE; y++){
+		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
+	}
+}
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
 	shmctl(mat_id, IPC_RMID, NULL); 

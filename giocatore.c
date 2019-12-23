@@ -72,16 +72,34 @@ int main(int argc, const char * args[]){
 		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA == 20){
 			switch(-giocatore.giocatore){
 				case 65:	
-					if (i < 5) x = 4;
-					else x = 12;
-					if (y >= 50) y = 10;
-					else y = y + 10;
+					if (i < 6){
+						if (i == 0) y = 6;
+						else if (y >= 54) y = 6;
+						else y = y + 24;
+						if (i < 3) x = 3;
+						else x = 11;
+					}
+					else {
+						if (i % 2 == 0) y = 18;
+						else y = 42;
+						if (i < 8) x = 7;
+						else x = 16;
+					}
 					break;
 				case 66:
-					if (i < 5) x = 8;
-					else x = 16;
-					if (y >= 50) y = 10;
-					else y = y + 10;
+					if (i < 6){
+						if (i == 0) y = 6;
+						else if (y >= 54) y = 6;
+						else y = y + 24;
+						if (i < 3) x = 7;
+						else x = 16;
+					}
+					else {
+						if (i % 2 == 0) y = 18;
+						else y = 42;
+						if (i < 8) x = 3;
+						else x = 11;
+					}
 					break;
 				}
 			}
@@ -116,8 +134,8 @@ int main(int argc, const char * args[]){
 	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT);	
 	sem_set_val(sem_round,1,SO_NUM_G);
 
-band_r = malloc(sizeof(int)); /* righe bandierine */
-band_c = malloc(sizeof(int)); /* colonne bandierine */	
+	band_r = malloc(sizeof(int)); /* righe bandierine */
+	band_c = malloc(sizeof(int)); /* colonne bandierine */	
 while(1){
 	/* SBLOCCO IL MASTER E DO IL MIO STATO */
 	sem_reserve(sem_id_zero,0);
