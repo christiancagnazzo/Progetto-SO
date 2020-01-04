@@ -87,78 +87,84 @@ int main(){
 	
 	contamosse = 1;
 	while (contamosse > 0){
-	/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
-	sem_set_val(sem_id_zero, 0, SO_NUM_G);
-	sem_set_val(sem_id_zero,2,1);
-	
-	sem_reserve(sem_round,0);
-	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-
-	/* PIAZZO BANDIERINE */
-	pt_totali = SO_ROUND_SCORE;
-	srand(time(NULL));
-	n_flag = rand()%((SO_FLAG_MAX)-(SO_FLAG_MIN)+1)+(SO_FLAG_MIN);
-	flag = n_flag;	
-	printf("\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n",SO_ROUND_SCORE,flag);
-	while ((n_flag) > 0){	
-		if (n_flag == 1)
-			pt_bandierina = pt_totali;
-		else {
-			media = pt_totali/n_flag;
-			pt_bandierina = rand()% media + 1;
-		}
-		do{
-			x = rand() % SO_ALTEZZA;
-			y = rand() % SO_BASE;			
-		}
-		while (matrice[posizione(x,y,SO_BASE)] != 0);
-		matrice[posizione(x,y,SO_BASE)] = pt_bandierina;
-		pt_totali = pt_totali - pt_bandierina;
-		n_flag--;
-	}
-
-	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-	
-	sem_set_val(sem_id_zero, 0, SO_NUM_G); 
-	sem_reserve(sem_id_zero,2); /* sblocco i giocatori */
+		/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
+		sem_set_val(sem_id_zero, 0, SO_NUM_G);
+		sem_set_val(sem_id_zero,2,1);
 		
-	/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
-	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
+		sem_reserve(sem_round,0);
+		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 
-
-	alarm(SO_MAX_TIME);
-	sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
-
-	for (i = 0; i < SO_NUM_G*SO_NUM_P; i++) {
-		msgrcv(ms_mg,&master_giocatore,sizeof(int)*3,1,0);
-		mosse_g[i] = 0;
-		mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;
-		punteggio_g[(-master_giocatore.giocatore)-65]+= master_giocatore.bandierina;
-		if (master_giocatore.bandierina > 0) flag--;
-		if (flag == 0) alarm(0);
+		/* PIAZZO BANDIERINE */
+		pt_totali = SO_ROUND_SCORE;
+		srand(time(NULL));
+		n_flag = rand()%((SO_FLAG_MAX)-(SO_FLAG_MIN)+1)+(SO_FLAG_MIN);
+		flag = n_flag;	
+		printf("\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n",SO_ROUND_SCORE,flag);
+		while ((n_flag) > 0){	
+			if (n_flag == 1)
+				pt_bandierina = pt_totali;
+			else {
+				media = pt_totali/n_flag;
+				pt_bandierina = rand()% media + 1;
+			}
+			do{
+				x = rand() % SO_ALTEZZA;
+				y = rand() % SO_BASE;			
+			}
+			while (matrice[posizione(x,y,SO_BASE)] != 0);
+			matrice[posizione(x,y,SO_BASE)] = pt_bandierina;
+			pt_totali = pt_totali - pt_bandierina;
+			n_flag--;
 		}
-	while (flag > 0);
-	
-	
-	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-/*i =0;
-for (x = 0; x<SO_ALTEZZA;x++){
-	printf("\n");
-	for (y= 0; y<SO_BASE; y++){
-		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
+
+		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+		
+		sem_set_val(sem_id_zero, 0, SO_NUM_G); 
+		sem_reserve(sem_id_zero,2); /* sblocco i giocatori */
+			
+		/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
+		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
+
+
+		alarm(SO_MAX_TIME);
+		sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
+
+		for (i = 0; i < SO_NUM_G*SO_NUM_P; i++) {
+			msgrcv(ms_mg,&master_giocatore,sizeof(int)*3,1,0);
+			mosse_g[i] = 0;
+			mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;
+			punteggio_g[(-master_giocatore.giocatore)-65]+= master_giocatore.bandierina;
+			if (master_giocatore.bandierina > 0) flag--;
+			if (flag == 0) alarm(0);
+		}
+		while (flag > 0); /* se le bandierine non vengono prese in tempo mi interromperà l'alarm */
+		
+		
+		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+
+		/* STAMPA SEMAFORI
+		i =0;
+		for (x = 0; x<SO_ALTEZZA;x++){
+			printf("\n");
+			for (y= 0; y<SO_BASE; y++){
+				printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
+			}
+		}
+		*/
+
+		/* AGGIORNO MOSSE GIOCATORI */
+		contamosse = 0;
+		for (i = 0; i < SO_NUM_G; i++){
+			printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
+			contamosse = contamosse + mosse_g[i];
+		}
+			
+		sleep(1); 
 	}
-}*/
-	contamosse = 0;
-	for (i = 0; i < SO_NUM_G; i++){
-		printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
-		contamosse = contamosse + mosse_g[i];
-		}	
-	sleep(1);	
-}
+
+	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
-	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
-	printf("\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	shmdt(matrice);
@@ -172,16 +178,16 @@ for (x = 0; x<SO_ALTEZZA;x++){
 
 
 void handle_signal(int signal){
-	int i,x, y;
+	int i,x,y;
 	printf("PARTITA FINITA\n");
-	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-	i =0;
-for (x = 0; x<SO_ALTEZZA;x++){
+	stampa_scacchiera(SO_BASE,SO_ALTEZZA);	
+	for (x = 0; x<SO_ALTEZZA;x++){
 	printf("\n");
+	/* stampa semafori */
 	for (y= 0; y<SO_BASE; y++){
 		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
+		}
 	}
-}
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
 	shmctl(mat_id, IPC_RMID, NULL); 

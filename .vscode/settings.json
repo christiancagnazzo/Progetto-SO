@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "my_lib.h": "c"
+        "my_lib.h": "c",
+        "types.h": "c"
     }
 }

@@ -9,7 +9,7 @@ int main(int argc, const char * args[]){
 	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_N_MOVES, SO_FLAG_MAX;
 	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_mg;
 	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, del, sem_round;
-	int * matrice, * pos_r, * pos_c, * band_r, * band_c;
+	int * matrice, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
 	struct statogiocatore giocatore;
@@ -134,81 +134,83 @@ int main(int argc, const char * args[]){
 	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT);	
 	sem_set_val(sem_round,1,SO_NUM_G);
 
+
+	vet_mosse = malloc(sizeof(int)*SO_NUM_P);
+	for (i = 0; i<SO_NUM_P; i++) vet_mosse[i] = SO_N_MOVES;
 	band_r = malloc(sizeof(int)); /* righe bandierine */
 	band_c = malloc(sizeof(int)); /* colonne bandierine */	
-while(1){
-	/* SBLOCCO IL MASTER E DO IL MIO STATO */
-	sem_reserve(sem_id_zero,0);
-	/* ASPETTO VIA LIBERA DAL MASTER */
-	aspetta_zero(sem_id_zero,2);
-	sem_reserve(sem_round,1);
-	
-	sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
-	cont = 0;
-	i = 0;
-	for (r = 0; r < SO_ALTEZZA; r++){
-		for (c = 0; c < SO_BASE; c++){
-			if (matrice[posizione(r,c,SO_BASE)] > 0){
-				cont++;
-				band_r = realloc(band_r,sizeof(int)*cont);
-				band_c = realloc(band_c,sizeof(int)*cont);
-				band_r[i] = r;
-				band_c[i++] = c;
+	while(1){
+		/* SBLOCCO IL MASTER E DO IL MIO STATO */
+		sem_reserve(sem_id_zero,0);
+		/* ASPETTO VIA LIBERA DAL MASTER */
+		aspetta_zero(sem_id_zero,2);
+		sem_reserve(sem_round,1);
+		
+		sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
+		cont = 0;
+		i = 0;
+		for (r = 0; r < SO_ALTEZZA; r++){
+			for (c = 0; c < SO_BASE; c++){
+				if (matrice[posizione(r,c,SO_BASE)] > 0){
+					cont++;
+					band_r = realloc(band_r,sizeof(int)*cont);
+					band_c = realloc(band_c,sizeof(int)*cont);
+					band_r[i] = r;
+					band_c[i++] = c;
+				}
 			}
 		}
-	}
 
-	distanza_min = (SO_N_MOVES+1);
-	for (i = 0; i < SO_NUM_P; i++){
-		for (b = 0; b < cont; b++ ){
-			if ((((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) <= SO_N_MOVES) 
-						&& (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) < distanza_min))
-				if (band_r[b] >= 0){	
-					distanza_min = ((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b])));
-					del = b;
-					r_flag = band_r[b];
-					c_flag = band_c[b];
-				}
-		}
-		if (distanza_min > SO_N_MOVES){
-			gioc_pedina.r_b = pos_r[i];
-			gioc_pedina.c_b = pos_c[i];
-		}
-		else{	
-			gioc_pedina.r_b = r_flag;
-			gioc_pedina.c_b = c_flag;
-			if ((SO_NUM_P*SO_NUM_G)/cont < 10) band_r[del] = -1;
-		}
-		gioc_pedina.type = fork_value[i];
-		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
 		distanza_min = (SO_N_MOVES+1);
-	}
-
-	sem_set_val(sem_id_zero,2,1); /* semaforo per attendere inizio gioco */	
-	/* SBLOCCO IL MASTER */
-	sem_reserve(sem_id_zero,0);
+		for (i = 0; i < SO_NUM_P; i++){
+			for (b = 0; b < cont; b++ ){
+				if ((((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) <= vet_mosse[i]) 
+							&& (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) < distanza_min))
+					if (band_r[b] >= 0){	
+						distanza_min = ((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b])));
+						del = b;
+						r_flag = band_r[b];
+						c_flag = band_c[b];
+					}
+			}
+			if (distanza_min > SO_N_MOVES){
+				gioc_pedina.r_b = pos_r[i];
+				gioc_pedina.c_b = pos_c[i];
+			}
+			else{	
+				gioc_pedina.r_b = r_flag;
+				gioc_pedina.c_b = c_flag;
+				if ((SO_NUM_P*SO_NUM_G)/cont < 10) band_r[del] = -1;
+			}
+			gioc_pedina.type = fork_value[i];
+			msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
+			distanza_min = (SO_N_MOVES+1);
+		}
+		sem_set_val(sem_id_zero,2,1); /* semaforo per attendere inizio gioco */	
+		/* SBLOCCO IL MASTER */
+		sem_reserve(sem_id_zero,0);
+		
+		/* ATTENDO INIZIO GIOCO */
+		aspetta_zero(sem_id_zero,2);
 	
-	/* ATTENDO INIZIO GIOCO */
-	aspetta_zero(sem_id_zero,2);
- 
-	/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
-	sem_reserve(sem_id_zero,3);	
-	for (i = 0; i < SO_NUM_P; i++){
-		msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,fork_value[i],0);
-		master_giocatore.type = 1;
-		master_giocatore.giocatore = giocatore.giocatore;
-		master_giocatore.bandierina = gioc_pedina.bandierina;
-		master_giocatore.mosse_residue = gioc_pedina.mosse;
-		msgsnd(ms_mg,&master_giocatore,sizeof(int)*3,0);
-		giocatore.mosse_residue+= gioc_pedina.mosse;
-		giocatore.punteggio+= gioc_pedina.bandierina; 
+		/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
+		sem_reserve(sem_id_zero,3);	
+		for (i = 0; i < SO_NUM_P; i++){
+			msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,fork_value[i],0);
+			master_giocatore.type = 1;
+			master_giocatore.giocatore = giocatore.giocatore;
+			master_giocatore.bandierina = gioc_pedina.bandierina;
+			master_giocatore.mosse_residue = gioc_pedina.mosse;
+			msgsnd(ms_mg,&master_giocatore,sizeof(int)*3,0);
+			vet_mosse[i] = gioc_pedina.mosse;
+			pos_r[i] = gioc_pedina.r;
+			pos_c[i] = gioc_pedina.c;
+			giocatore.mosse_residue+= gioc_pedina.mosse;
+			giocatore.punteggio+= gioc_pedina.bandierina; 
+		}
+		sem_set_val(sem_round,0,1);
+		aspetta_zero(sem_round,0);
 	}
-	sem_set_val(sem_round,0,1);
-	aspetta_zero(sem_round,0);
-}
-	for (i = 0; i < 2; i++)
-		kill(fork_value[i],SIGINT);
-	msgctl(ms_gp,IPC_RMID,NULL);
 }
 
 void handle_signal(int signal){
