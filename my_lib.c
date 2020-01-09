@@ -39,7 +39,7 @@ int sem_reserve_wait_time(int sem_id, int sem_num){
 	struct timespec ts;
 
 	ts.tv_sec = 0;
-    ts.tv_nsec = 10000;
+    ts.tv_nsec = 1000000;
 
 	sops.sem_num = sem_num;
 	sops.sem_op = -1;

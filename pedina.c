@@ -47,6 +47,7 @@ int main(){
 
         /* ATTENDO INIZIO GIOCO */
         aspetta_zero(sem_id_zero,3);
+
         /* RICERCA BANDIERINE */
         bandierina = 0;  
         r = pedina.r;

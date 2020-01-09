@@ -188,8 +188,6 @@ void handle_signal(int signal){
 		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
 		}
 	}
-	for (i = 0; i < SO_NUM_G; i++)
-		kill(fork_value[i],SIGINT);
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	semctl(sem_round,0,IPC_RMID);
@@ -199,5 +197,7 @@ void handle_signal(int signal){
 	msgctl(ms_mg,IPC_RMID,NULL);
 	shmdt(matrice);
 	shmdt(set);
+	for (i = 0; i < SO_NUM_G; i++)
+		kill(fork_value[i],SIGINT);
 	exit(1);
 }
