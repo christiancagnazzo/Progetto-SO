@@ -7,9 +7,9 @@ void handle_signal(int signal);
 
 int main(int argc, const char * args[]){
 	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_N_MOVES, SO_FLAG_MAX;
-	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_mg;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_mg, j,z;
 	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, del, sem_round;
-	int * matrice, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse, *assegnate;
+	int * matrice, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse, *assegnate_r, *assegnate_c;
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
 	struct statogiocatore giocatore;
@@ -161,38 +161,44 @@ int main(int argc, const char * args[]){
 			}
 		}
 
-		assegnate = malloc(sizeof(int)*cont);
-		for (i = 0; i < cont; i++) assegnate[i] = 0;
-		distanza_min = (SO_N_MOVES+1);
-		for (i = 0; i < SO_NUM_P; i++){
-			for (b = 0; b < cont; b++ ){
-				if ((((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) <= vet_mosse[i]) 
-							&& (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) < distanza_min))
-					if (assegnate[b] == 0){	
-						distanza_min = ((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b])));
-						del = b;
-						r_flag = band_r[b];
-						c_flag = band_c[b];
-					}
+		assegnate_r = malloc(sizeof(int)*SO_NUM_P);
+		assegnate_c = malloc(sizeof(int)*SO_NUM_P);
+		for (i = 0; i < SO_NUM_P; i++) assegnate_r[i] = assegnate_c[i] = -1;
+		distanza_min = SO_N_MOVES+1;
+		j = -1;
+		for (b = 0; b < cont; b++){
+			for (i = 0; i < SO_NUM_P; i++){
+				if ((assegnate_r[i] == -1) && (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) <= vet_mosse[i]) 
+							&& (((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b]))) < distanza_min)){
+				distanza_min = ((abs(pos_r[i]-band_r[b]))+(abs(pos_c[i]-band_c[b])));
+				j = i;
+				}
 			}
-			if (distanza_min > SO_N_MOVES){
+			if (j != -1){
+				assegnate_r[j] = band_r[b];
+				assegnate_c[j] = band_c[b];
+				j = -1;
+				distanza_min = SO_N_MOVES+1;
+			}
+		}
+		for (i = 0; i < SO_NUM_P; i++){
+			if (assegnate_r[i] == -1){
 				gioc_pedina.r_b = pos_r[i];
 				gioc_pedina.c_b = pos_c[i];
 			}
-			else{	
-				gioc_pedina.r_b = r_flag;
-				gioc_pedina.c_b = c_flag;
-				if ((SO_NUM_P*SO_NUM_G)/cont < 10) assegnate[del] = 1;
+			else{
+				gioc_pedina.r_b = assegnate_r[i];
+				gioc_pedina.c_b = assegnate_c[i];
 			}
 			gioc_pedina.type = fork_value[i];
 			msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
-			distanza_min = (SO_N_MOVES+1);
 		}
-		free(assegnate);
+		free(assegnate_r);
+		free(assegnate_c);
 		sem_set_val(sem_id_zero,2,1); /* semaforo per attendere inizio gioco */	
 		/* SBLOCCO IL MASTER */
 		sem_reserve(sem_id_zero,0);
-		
+
 		/* ATTENDO INIZIO GIOCO */
 		aspetta_zero(sem_id_zero,2);
 	

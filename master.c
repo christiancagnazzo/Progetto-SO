@@ -99,7 +99,7 @@ int main(){
 		srand(time(NULL));
 		n_flag = rand()%((SO_FLAG_MAX)-(SO_FLAG_MIN)+1)+(SO_FLAG_MIN);
 		flag = n_flag;	
-		printf("\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n",SO_ROUND_SCORE,flag);
+		printf(RED"\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n"RESET,SO_ROUND_SCORE,flag);
 		while ((n_flag) > 0){	
 			if (n_flag == 1)
 				pt_bandierina = pt_totali;
@@ -155,7 +155,7 @@ int main(){
 		/* AGGIORNO MOSSE GIOCATORI */
 		contamosse = 0;
 		for (i = 0; i < SO_NUM_G; i++){
-			printf("giocatore %c punteggio %d mosse %d \n",65+i,punteggio_g[i],mosse_g[i]);
+			printf(GREEN"giocatore %c punteggio %d mosse %d \n"RESET,65+i,punteggio_g[i],mosse_g[i]);
 			contamosse = contamosse + mosse_g[i];
 		}
 			
@@ -179,7 +179,7 @@ int main(){
 
 void handle_signal(int signal){
 	int i,x,y;
-	printf("PARTITA FINITA\n");
+	printf(RED"PARTITA FINITA\n"RESET);
 	stampa_scacchiera(SO_BASE,SO_ALTEZZA);	
 	for (x = 0; x<SO_ALTEZZA;x++){
 	printf("\n");

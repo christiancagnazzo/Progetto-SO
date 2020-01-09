@@ -136,6 +136,9 @@ void stampa_scacchiera(int base, int altezza){
 
 
 	printf("\n");
+	for (i = 0; i < 10; i++) printf(BLUE" %d ",i);
+	for (i = 10; i < base; i++) printf(BLUE" %d",i);
+	printf("\n");
 	for (i = 0; i < base; i++) printf(BLUE" __"RESET);
 	printf("\n");
 	for (x = 0; x < altezza; x++){
@@ -150,7 +153,7 @@ void stampa_scacchiera(int base, int altezza){
 				else	
 					printf(BLUE"|  "RESET, matrice[pos++]);	 /* casella vuota */
 		}
-		printf(BLUE"|\n"RESET);
+		printf(BLUE"|"BLUE"%d\n"RESET,x);
 		for (i = 0; i < base; i++) printf(BLUE" __"RESET);
 		printf(BLUE"|\n"RESET);
 	}
