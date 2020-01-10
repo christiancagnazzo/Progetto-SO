@@ -1,25 +1,32 @@
 #include "my_lib.h"
 
-void handle_signal(int signal);
-int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_gp,ms_mg, sem_round, SO_BASE, SO_ALTEZZA, SO_NUM_G;
-int * matrice, * fork_value;
+void alarm_handle(int signal);
+void sigint_handle(int signal);
+
+int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_gp,ms_mg, sem_round, SO_BASE, SO_ALTEZZA, SO_NUM_G, conta_round, SO_N_MOVES, SO_NUM_P;
+int * matrice, * fork_value, * punteggio_g, * mosse_g;
 struct shared_set  * set;
+time_t start;
+time_t end;
+double tempo;
 
 int main(){
-	int SO_NUM_P, SO_MAX_TIME, SO_FLAG_MIN, SO_FLAG_MAX, SO_ROUND_SCORE, SO_N_MOVES, SO_MIN_HOLD_NSEC;
-	int i,x,y, pos, n_flag, g;
+	int SO_MAX_TIME, SO_FLAG_MIN, SO_FLAG_MAX, SO_ROUND_SCORE, SO_MIN_HOLD_NSEC;
+	int i ,x ,y ,pos ,n_flag;
 	int pt_bandierina, pt_totali, media, flag, contamosse;
-	int * punteggio_g, * mosse_g;
 	struct msg_m_g master_giocatore;
 	char * args[2];
 	char str[4];
 
 	struct sigaction sa;
+	struct sigaction sc;
 	bzero(&sa,sizeof(sa));
-	sa.sa_handler = handle_signal;
-	/*sigaction(SIGINT,&sa,NULL);*/
+	sa.sa_handler = alarm_handle;
 	sigaction(SIGALRM,&sa,NULL);
-
+	bzero(&sc,sizeof(sc));
+	sc.sa_handler = sigint_handle;
+	/*sigaction(SIGINT,&sc,NULL);*/
+	
 	/* CONFIGURAZIONE E GENERAZIONE SCACCHIERA */
 	args[1] = NULL;
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
@@ -56,7 +63,7 @@ int main(){
 
 	/* SEMAFORO MUTUA ESCLUSIONE: giocatori piazzano a turno le pedine */
 	sem_id_mutex = semget(KEY_5,SO_NUM_G, IPC_CREAT | 0666); 
-	sem_set_val(sem_id_mutex,0,1);
+	sem_set_val(sem_id_mutex,0,0);
 	for (i = 1; i < SO_NUM_G; i++)
 		sem_set_val(sem_id_mutex,i,0);
 
@@ -82,24 +89,29 @@ int main(){
 		}
 	}
 
+	/* CREO SEMAFORO PER GESTIRE I ROUND */
 	sem_round = semget(KEY_7,2,0666 | IPC_CREAT);
 	sem_set_val(sem_round,0,1);
 	
-	contamosse = 1;
-	while (contamosse > 0){
+	
+	conta_round = 0;
+	start=time(NULL);
+	while (1){
 		/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
 		sem_set_val(sem_id_zero, 0, SO_NUM_G);
-		sem_set_val(sem_id_zero,2,1);
-		
-		sem_reserve(sem_round,0);
+		sem_set_val(sem_id_zero,2,1); /* Master aspetta via libera per strategia */
+		sem_reserve(sem_round,0); /* SBLOCCO L'INIZIO DEI NUOVI ROUND */
+		sem_set_val(sem_id_mutex,0,1); /* Consente al primo giocatore di piazzare la propria pedina */
+
 		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
 
 		/* PIAZZO BANDIERINE */
+		conta_round++;
 		pt_totali = SO_ROUND_SCORE;
 		srand(time(NULL));
 		n_flag = rand()%((SO_FLAG_MAX)-(SO_FLAG_MIN)+1)+(SO_FLAG_MIN);
 		flag = n_flag;	
-		printf(RED"\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d\n"RESET,SO_ROUND_SCORE,flag);
+		printf(RED"\nPUNTEGGIO TOTALE PARTITA %d, BANDIERINE TOTALI %d ROUND NUMERO %d\n"RESET,SO_ROUND_SCORE,flag,conta_round);
 		while ((n_flag) > 0){	
 			if (n_flag == 1)
 				pt_bandierina = pt_totali;
@@ -118,13 +130,13 @@ int main(){
 		}
 
 		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+		/*sleep(0.5);*/
 		
 		sem_set_val(sem_id_zero, 0, SO_NUM_G); 
 		sem_reserve(sem_id_zero,2); /* sblocco i giocatori */
 			
 		/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
 		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-
 
 		alarm(SO_MAX_TIME);
 		sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
@@ -142,52 +154,38 @@ int main(){
 		
 		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
 
-		/* STAMPA SEMAFORI
-		i =0;
-		for (x = 0; x<SO_ALTEZZA;x++){
-			printf("\n");
-			for (y= 0; y<SO_BASE; y++){
-				printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
-			}
-		}
-		*/
-
 		/* AGGIORNO MOSSE GIOCATORI */
-		contamosse = 0;
-		for (i = 0; i < SO_NUM_G; i++){
+		for (i = 0; i < SO_NUM_G; i++)
 			printf(GREEN"giocatore %c punteggio %d mosse %d \n"RESET,65+i,punteggio_g[i],mosse_g[i]);
-			contamosse = contamosse + mosse_g[i];
-		}
-			
-		sleep(1); 
+		
+		/*sleep(1);*/ 
 	}
-
-	/* ELIMINO SEMAFORI E MEMORIE CONDIVISE*/
-	for (i = 0; i < SO_NUM_G; i++)
-		kill(fork_value[i],SIGINT);
-	shmctl(mat_id, IPC_RMID, NULL); 
-	shmctl(conf_id, IPC_RMID, NULL);
-	shmdt(matrice);
-	shmdt(set);
-	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
-	semctl(sem_id_matrice,0,IPC_RMID);
-	semctl(sem_id_mutex,0,IPC_RMID);
-	semctl(sem_round,0,IPC_RMID);
-	msgctl(ms_mg,IPC_RMID,NULL);
 }
 
 
-void handle_signal(int signal){
-	int i,x,y;
-	printf(RED"PARTITA FINITA\n"RESET);
-	stampa_scacchiera(SO_BASE,SO_ALTEZZA);	
-	for (x = 0; x<SO_ALTEZZA;x++){
-	printf("\n");
-	/* stampa semafori */
-	for (y= 0; y<SO_BASE; y++){
-		printf("%d ",semctl(sem_id_matrice,i++,GETVAL));
-		}
+void alarm_handle(int signal){
+	int i, punti_totali_g;
+	float mosse_tot;
+	end=time(NULL);
+	tempo=((double)(end-start));
+	printf(RED"\nPARTITA FINITA\n"RESET);
+	punti_totali_g = 0;
+	for (i = 0; i < SO_NUM_G; i++){
+			printf(GREEN"giocatore %c punteggio %d mosse %d \n"RESET,65+i,punteggio_g[i],mosse_g[i]);
+			punti_totali_g+= punteggio_g[i];
 	}
+	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
+	/* STAMPA METRICHE */
+	printf(RED"\n------------- METRICHE -------------\n"RESET);
+	printf(YELLOW"\n- NUMERO ROUND GIOCATI: %d\n"RESET,conta_round);
+	mosse_tot = SO_NUM_P*SO_N_MOVES;
+	printf(GREEN"\n- RAPPORTO MOSSE UTILIZZATE E MOSSE TOTALI\n"RESET);
+	for (i = 0; i < SO_NUM_G; i++)	
+		printf("	GIOCATORE %c: %f\n",65+i,((SO_N_MOVES*SO_NUM_P)-mosse_g[i])/mosse_tot);
+	printf(GREEN"\n- RAPPORTO PUNTI OTTENUTI E MOSSE UTILIZZATE\n"RESET);
+	for (i = 0; i < SO_NUM_G; i++)
+		printf("	GIOCATORE %c: %f\n",65+i,punteggio_g[i]/(mosse_tot-mosse_g[i]));
+	printf(GREEN"\n- RAPPORTO PUNTI TOTALI E TEMPO DI GIOCO IN SECONDI:"RESET" %f\n",punti_totali_g/tempo);
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	semctl(sem_round,0,IPC_RMID);
@@ -199,5 +197,30 @@ void handle_signal(int signal){
 	shmdt(set);
 	for (i = 0; i < SO_NUM_G; i++)
 		kill(fork_value[i],SIGINT);
-	exit(1);
+	while (wait(NULL) != -1);	
+	free(punteggio_g);
+	free(mosse_g);
+	free(fork_value);
+	exit(EXIT_SUCCESS);
+}
+
+void sigint_handle(int signal){
+	int i;
+	shmctl(mat_id, IPC_RMID, NULL); 
+	shmctl(conf_id, IPC_RMID, NULL);
+	semctl(sem_round,0,IPC_RMID);
+	semctl(sem_id_zero,0,IPC_RMID); /* 0 è ignorato*/
+	semctl(sem_id_matrice,0,IPC_RMID);
+	semctl(sem_id_mutex,0,IPC_RMID);
+	msgctl(ms_mg,IPC_RMID,NULL);
+	shmdt(matrice);
+	shmdt(set);
+	for (i = 0; i < SO_NUM_G; i++)
+		kill(fork_value[i],SIGINT);
+	while (wait(NULL) != -1);	
+	free(punteggio_g);
+	free(mosse_g);
+	free(fork_value);
+	printf("\nPARTITA INTERROTTA\n");
+	exit(EXIT_SUCCESS);
 }

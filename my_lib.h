@@ -14,6 +14,15 @@
 #include <time.h>
 #include <signal.h>
 
+#define TEST_ERROR if (errno) {fprintf(stderr,				\
+				       "%s:%d: PID=%5d: Error %d (%s)\n", \
+				       __FILE__,			\
+				       __LINE__,			\
+				       getpid(),			\
+				       errno,				\
+				       strerror(errno));}
+
+
 #define GREEN   "\x1b[32m"
 #define YELLOW  "\x1b[33m"
 #define RESET   "\x1b[0m"
@@ -76,17 +85,31 @@ struct statopedina
 	int giocatore;
 };
 
-struct statogiocatore {
-	int id;
-	int giocatore;
-	int mosse_residue;
-	int punteggio;
-};
+/*
+ * Richiesta di accesso a risorsa se c'è
+ * INPUT:
+ * - sem_id: ID dell'array di semafori (IPC)
+ * - sem_num: posizione semaforo nell'array
+ * 
+ * - Se la risorsa è disponibile (valore semaforo > 0), il semaforo
+ *   è decrementato di 1
+ * - Altrimenti il processo non rimane in attesa
+ */
+int sem_reserve_nowait(int sem_id, int sem_num);
 
-
-
-
+/*
+ * Richiesta di accesso a risorsa per un periodo di tempo
+ * INPUT:
+ * - sem_id: ID dell'array di semafori (IPC)
+ * - sem_num: posizione semaforo nell'array
+ * 
+ * - Se la risorsa è disponibile (valore semaforo > 0), il semaforo
+ *   è decrementato di 1
+ * - Altrimenti il processo rimane in attesa per un limite di tempo che 
+ *   che la risorsa diventi disponibile
+ */
 int sem_reserve_wait_time(int sem_id, int sem_num);
+
  /*
  * Inizializzazione semaforo
  * INPUT:
@@ -131,8 +154,8 @@ int sem_getall(char * my_string, int sem_id);
 int aspetta_zero(int sem_id, int sem_num);
 /*
 
- * Union necessaria
- */
+* Union necessaria
+*/
 union semun {
 	int              val;    /* Value for SETVAL */
 	struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
@@ -141,11 +164,11 @@ union semun {
 				    (Linux-specific) */
 };
 
-
-int sem_reserve_nowait(int sem_id, int sem_num);
-
+/* CONFIGURAZIONE PARAMETRI */
 void configure_settings();
 
+/* RESTITUISCE LA POSIZIONE DATA RIGA E COLONNA */
 int posizione(int r, int c, int col);
 
+/* STAMPA SCACCHIERA*/
 void stampa_scacchiera(int base, int altezza);

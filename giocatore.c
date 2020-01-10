@@ -1,24 +1,23 @@
 #include "my_lib.h"
 
-int * fork_value;
-int ms_gp, SO_NUM_P;
-void handle_signal(int signal);
+void sigint_handler(int signal);
 
+int * fork_value, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse, *assegnate_r, *assegnate_c;
+int ms_gp, SO_NUM_P;
 
 int main(int argc, const char * args[]){
-	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_N_MOVES, SO_FLAG_MAX;
-	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,g,c,r,rit, conf_id, ms_mg, j,z;
-	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, del, sem_round;
-	int * matrice, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse, *assegnate_r, *assegnate_c;
+	int SO_BASE, SO_ALTEZZA, SO_NUM_G, SO_N_MOVES, SO_FLAG_MAX, n_giocatore;
+	int i, sem_id_zero, sem_id_mutex, mat_id, x,y,c,r,rit, conf_id, ms_mg, j;
+	int sem_id_matrice, distanza_min, r_flag, c_flag, b, cont, sem_round;
+	int * matrice; 
 	struct shared_set * set;
 	struct msg_p_g gioc_pedina;
-	struct statogiocatore giocatore;
 	struct msg_m_g master_giocatore;
 
-	struct sigaction sa1;
-	bzero(&sa1,sizeof(sa1));
-	sa1.sa_handler = handle_signal;
-	sigaction(SIGINT,&sa1,NULL);
+	struct sigaction sb;
+	bzero(&sb,sizeof(sb));
+	sb.sa_handler = sigint_handler;
+	sigaction(SIGINT,&sb,NULL);
 
 	/* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
@@ -34,11 +33,8 @@ int main(int argc, const char * args[]){
 	matrice = shmat(mat_id, NULL, 0);
 	sem_id_matrice = semget(KEY_3,(SO_ALTEZZA*SO_BASE), IPC_CREAT | 0666);
 
-	/* AGGIORNAMENTO STATO GIOCATORE */
-	giocatore.giocatore = -(atoi(args[0]));
-	giocatore.id = getpid();
-	giocatore.mosse_residue = 0;
-	giocatore.punteggio = 0;
+	/* NOME GIOCATORE */
+	n_giocatore = -(atoi(args[0]));
 
 	/* CREO CODA DI MESSAGGI PER COMUNICARE CON LE PEDINE  E CON IL MASTER */
 	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
@@ -70,7 +66,7 @@ int main(int argc, const char * args[]){
 	pos_c = malloc(sizeof(int)*SO_NUM_P); /* colonne mie pedine */	
 	for (i = 0; i < SO_NUM_P; i++){	
 		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA == 20){
-			switch(-giocatore.giocatore){
+			switch(-n_giocatore){
 				case 65:	
 					if (i < 6){
 						if (i == 0) y = 6;
@@ -108,7 +104,7 @@ int main(int argc, const char * args[]){
 				x = rand() % (SO_ALTEZZA);
 				y = rand() % (SO_BASE);
 			}
-		sem_reserve(sem_id_mutex,(-giocatore.giocatore)-65);
+		sem_reserve(sem_id_mutex,(-n_giocatore)-65);
 		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,SO_BASE));	
 		while (rit == -1 && errno == EAGAIN){
     	    if (posizione(x,y,SO_BASE) == ((SO_BASE*SO_ALTEZZA)-1)){
@@ -123,16 +119,16 @@ int main(int argc, const char * args[]){
 		gioc_pedina.type = fork_value[i];
 		gioc_pedina.r = x;	
 		gioc_pedina.c = y;	
-		gioc_pedina.giocatore = giocatore.giocatore;
+		gioc_pedina.giocatore = n_giocatore;
 		gioc_pedina.mosse = SO_N_MOVES;
-		sem_set_val(sem_id_zero, 1, 1);
+		sem_set_val(sem_id_zero, 1, 1); /* Aspetto che la pedina si piazzi */
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
 		aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
-		sem_release(sem_id_mutex,((-giocatore.giocatore)-65+1)%SO_NUM_G);
+		sem_release(sem_id_mutex,((-n_giocatore)-65+1)%SO_NUM_G);
 	}
 	
-	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT);	
-	sem_set_val(sem_round,1,SO_NUM_G);
+	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT); /* giocatore - pedine */	
+	sem_set_val(sem_round,1,SO_NUM_G); /* bloccherà le pedine al termine dei round */
 
 
 	vet_mosse = malloc(sizeof(int)*SO_NUM_P);
@@ -144,7 +140,7 @@ int main(int argc, const char * args[]){
 		sem_reserve(sem_id_zero,0);
 		/* ASPETTO VIA LIBERA DAL MASTER */
 		aspetta_zero(sem_id_zero,2);
-		sem_reserve(sem_round,1);
+		sem_reserve(sem_round,1); /* sblocco le pedine che si fermeranno alla fine del round */
 		
 		sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
 		cont = 0;
@@ -193,6 +189,7 @@ int main(int argc, const char * args[]){
 			gioc_pedina.type = fork_value[i];
 			msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
 		}
+		/*for (i = 0; i < SO_NUM_P; i++) printf("r %d c %d \n",assegnate_r[i],assegnate_c[i]);*/
 		free(assegnate_r);
 		free(assegnate_c);
 		sem_set_val(sem_id_zero,2,1); /* semaforo per attendere inizio gioco */	
@@ -207,25 +204,30 @@ int main(int argc, const char * args[]){
 		for (i = 0; i < SO_NUM_P; i++){
 			msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,fork_value[i],0);
 			master_giocatore.type = 1;
-			master_giocatore.giocatore = giocatore.giocatore;
+			master_giocatore.giocatore = n_giocatore;
 			master_giocatore.bandierina = gioc_pedina.bandierina;
 			master_giocatore.mosse_residue = gioc_pedina.mosse;
 			msgsnd(ms_mg,&master_giocatore,sizeof(int)*3,0);
 			vet_mosse[i] = gioc_pedina.mosse;
 			pos_r[i] = gioc_pedina.r;
-			pos_c[i] = gioc_pedina.c;
-			giocatore.mosse_residue+= gioc_pedina.mosse;
-			giocatore.punteggio+= gioc_pedina.bandierina; 
+			pos_c[i] = gioc_pedina.c; 
 		}
 		sem_set_val(sem_round,0,1);
 		aspetta_zero(sem_round,0);
 	}
 }
 
-void handle_signal(int signal){
+void sigint_handler(int signal){
 	int i;
 	msgctl(ms_gp,IPC_RMID,NULL);
 	for (i = 0; i < SO_NUM_P; i++)
 		kill(fork_value[i],SIGINT);
-	exit(1);	
+	free(fork_value);
+	free(pos_c);
+	free(pos_r);
+	free(band_c);
+	free(band_r);
+	free(vet_mosse);
+	while (wait(NULL) != -1);	
+	exit(EXIT_SUCCESS);	
 }

@@ -2,7 +2,7 @@
 
 
 int main(){
-    int SO_BASE, SO_ALTEZZA, SO_MIN_HOLD_NSEC, SO_NUM_G,sem_round, g;
+    int SO_BASE, SO_ALTEZZA, SO_MIN_HOLD_NSEC, SO_NUM_G,sem_round;
     int conf_id, sem_id_matrice, mat_id, sem_id_zero, ms_gp, r, c, posso_muovermi_c, posso_muovermi_r, rit, bandierina;
     int * matrice;
     struct shared_set * set;
@@ -173,9 +173,9 @@ int main(){
                             gioc_pedina.type = getpid();
                             gioc_pedina.mosse = pedina.mosse;
                             gioc_pedina.bandierina = bandierina;
-                            msgsnd(ms_gp,&gioc_pedina,sizeof(int)*7,0);
                             gioc_pedina.r = pedina.r;
                             gioc_pedina.c = pedina.c;
+                            msgsnd(ms_gp,&gioc_pedina,sizeof(int)*7,0);
                             break;   
                     }
                     }
