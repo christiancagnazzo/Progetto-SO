@@ -63,8 +63,7 @@ int main(){
 
 	/* SEMAFORO MUTUA ESCLUSIONE: giocatori piazzano a turno le pedine */
 	sem_id_mutex = semget(KEY_5,SO_NUM_G, IPC_CREAT | 0666); 
-	sem_set_val(sem_id_mutex,0,0);
-	for (i = 1; i < SO_NUM_G; i++)
+	for (i = 0; i < SO_NUM_G; i++)
 		sem_set_val(sem_id_mutex,i,0);
 
 	/* SEMAFORI ASPETTA ZERO */
@@ -99,7 +98,7 @@ int main(){
 	while (1){
 		/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
 		sem_set_val(sem_id_zero, 0, SO_NUM_G);
-		sem_set_val(sem_id_zero,2,1); /* Master aspetta via libera per strategia */
+		sem_set_val(sem_id_zero,2,1); /* Giocatore aspetta via libera per strategia */
 		sem_reserve(sem_round,0); /* SBLOCCO L'INIZIO DEI NUOVI ROUND */
 		sem_set_val(sem_id_mutex,0,1); /* Consente al primo giocatore di piazzare la propria pedina */
 
@@ -130,7 +129,7 @@ int main(){
 		}
 
 		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-		/*sleep(0.5);*/
+		/*sleep(1);*/
 		
 		sem_set_val(sem_id_zero, 0, SO_NUM_G); 
 		sem_reserve(sem_id_zero,2); /* sblocco i giocatori */
@@ -158,7 +157,7 @@ int main(){
 		for (i = 0; i < SO_NUM_G; i++)
 			printf(GREEN"giocatore %c punteggio %d mosse %d \n"RESET,65+i,punteggio_g[i],mosse_g[i]);
 		
-		/*sleep(1);*/ 
+		/*sleep(1);*/
 	}
 }
 
@@ -185,7 +184,7 @@ void alarm_handle(int signal){
 	printf(GREEN"\n- RAPPORTO PUNTI OTTENUTI E MOSSE UTILIZZATE\n"RESET);
 	for (i = 0; i < SO_NUM_G; i++)
 		printf("	GIOCATORE %c: %f\n",65+i,punteggio_g[i]/(mosse_tot-mosse_g[i]));
-	printf(GREEN"\n- RAPPORTO PUNTI TOTALI E TEMPO DI GIOCO IN SECONDI:"RESET" %f\n",punti_totali_g/tempo);
+	printf(GREEN"\n- RAPPORTO PUNTI TOTALI (%d) E TEMPO DI GIOCO IN SECONDI (%f):"RESET" %f\n",punti_totali_g,tempo,punti_totali_g/tempo);
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	semctl(sem_round,0,IPC_RMID);

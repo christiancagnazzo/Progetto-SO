@@ -136,7 +136,7 @@ int main(int argc, const char * args[]){
 	band_r = malloc(sizeof(int)); /* righe bandierine */
 	band_c = malloc(sizeof(int)); /* colonne bandierine */	
 	while(1){
-		/* SBLOCCO IL MASTER E DO IL MIO STATO */
+		/* SBLOCCO IL MASTER */
 		sem_reserve(sem_id_zero,0);
 		/* ASPETTO VIA LIBERA DAL MASTER */
 		aspetta_zero(sem_id_zero,2);
