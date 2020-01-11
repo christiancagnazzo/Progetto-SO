@@ -161,7 +161,6 @@ int main(){
 	}
 }
 
-
 void alarm_handle(int signal){
 	int i, punti_totali_g;
 	float mosse_tot;

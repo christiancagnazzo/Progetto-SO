@@ -65,7 +65,7 @@ int main(int argc, const char * args[]){
 	pos_r = malloc(sizeof(int)*SO_NUM_P); /* righe mie pedine */
 	pos_c = malloc(sizeof(int)*SO_NUM_P); /* colonne mie pedine */	
 	for (i = 0; i < SO_NUM_P; i++){	
-		if (SO_NUM_G == 2 && SO_BASE == 60 && SO_ALTEZZA == 20){
+		if (SO_NUM_G == 2 && SO_NUM_P == 10 && SO_BASE == 60 && SO_ALTEZZA == 20){
 			switch(-n_giocatore){
 				case 65:	
 					if (i < 6){
@@ -216,6 +216,7 @@ int main(int argc, const char * args[]){
 		aspetta_zero(sem_round,0);
 	}
 }
+
 
 void sigint_handler(int signal){
 	int i;

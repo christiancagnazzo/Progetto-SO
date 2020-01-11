@@ -199,5 +199,3 @@ int main(){
         aspetta_zero(sem_round,1);
     }
 }
-
-

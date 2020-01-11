@@ -1,13 +1,14 @@
 # flags per la compilazione
 CFLAGS = -std=c89 -Wpedantic
-# target ovvero nome dell'eseguibile che si intende produrre
+# eseguibile
 TARGET = master
 TARGET1 = giocatore 
 TARGET2 = pedina 
 # object files necessari per produrre l'eseguibile
-OBJ    = my_lib.o master.o
-OBJ1   = my_lib.o giocatore.o
-OBJ2    = my_lib.o pedina.o
+OBJ    = my_lib.o master.c
+OBJ1   = my_lib.o giocatore.c
+OBJ2    = my_lib.o pedina.c
+
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) $(CFLAGS) -g -O0 -o  $(TARGET)
 
@@ -25,8 +26,3 @@ clean:
 
 run: $(TARGET) $(TARGET1) $(TARGET2)
 	./$(TARGET)
-#all:
-#	gcc -c my_lib.c 
-#	gcc -std=c89 -Wpedantic -g -Og master.c my_lib.o -o master  
-#	gcc -std=c89 -Wpedantic -g -Og giocatore.c my_lib.o -o giocatore  
-#	gcc -std=c89 -Wpedantic -g -Og pedina.c my_lib.o -o pedina

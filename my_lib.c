@@ -129,5 +129,3 @@ void stampa_scacchiera(int base, int altezza){
 		printf(BLUE"|\n"RESET);
 	}
 }
-
-
