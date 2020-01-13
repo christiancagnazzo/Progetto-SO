@@ -76,8 +76,7 @@ struct msg_m_g {
 	int giocatore;
 };
 
-struct statopedina
-{
+struct statopedina {
     int id;
     int r;
 	int c;

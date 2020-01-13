@@ -3,8 +3,8 @@
 void alarm_handle(int signal);
 void sigint_handle(int signal);
 
-int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_gp,ms_mg, sem_round, SO_BASE, SO_ALTEZZA, SO_NUM_G, conta_round, SO_N_MOVES, SO_NUM_P;
-int * matrice, * fork_value, * punteggio_g, * mosse_g;
+int sem_id_zero, sem_id_mutex, mat_id, conf_id, sem_id_matrice,ms_mg, sem_round, SO_BASE, SO_ALTEZZA, SO_NUM_G, conta_round, SO_N_MOVES, SO_NUM_P;
+int * matrice,  * fork_value, * punteggio_g, * mosse_g, *prova;
 struct shared_set  * set;
 time_t start;
 time_t end;
@@ -25,8 +25,8 @@ int main(){
 	sigaction(SIGALRM,&sa,NULL);
 	bzero(&sc,sizeof(sc));
 	sc.sa_handler = sigint_handle;
-	/*sigaction(SIGINT,&sc,NULL);*/
-	
+	sigaction(SIGINT,&sc,NULL);
+
 	/* CONFIGURAZIONE E GENERAZIONE SCACCHIERA */
 	args[1] = NULL;
 	setvbuf(stdout, NULL, _IONBF, 0); /* NO BUFFER */
@@ -47,6 +47,7 @@ int main(){
 	matrice = shmat(mat_id, NULL, 0);
 
 	/* SETTAGGIO INIZIALE MATRICE E PUNTEGGIO/MOSSE GIOCATORI */
+	fork_value = malloc(sizeof(pid_t)*SO_NUM_G);
 	for (pos = 0; pos < SO_BASE*SO_ALTEZZA; pos++)
 		matrice[pos] = 0;
 	punteggio_g = malloc(sizeof(int)*SO_NUM_G);
@@ -68,10 +69,9 @@ int main(){
 
 	/* SEMAFORI ASPETTA ZERO */
 	sem_id_zero = semget(KEY_0, 4, IPC_CREAT | 0666);
-
+	
 	/* GENERAZIONE GIOCATORI E CREAZIONE CODA PER COMUNICARE */
-	ms_mg = msgget(KEY_6, IPC_CREAT | 0666);
-	fork_value = malloc(sizeof(int)*SO_NUM_G);
+	ms_mg = msgget(KEY_6, IPC_CREAT | 0666); 
 	for (i = 0; i < SO_NUM_G; i++){
 		switch (fork_value[i] = fork()){
 			case -1:
@@ -90,20 +90,17 @@ int main(){
 
 	/* CREO SEMAFORO PER GESTIRE I ROUND */
 	sem_round = semget(KEY_7,2,0666 | IPC_CREAT);
-	sem_set_val(sem_round,0,1);
+	sem_set_val(sem_round,0,0);
 	
-	
+	sem_set_val(sem_id_zero, 1, 0); /* Giocatore aspetterà che la pedina si piazzi */
+	sem_set_val(sem_id_mutex,0,1); /* Consente al primo giocatore di piazzare la propria pedina */
+	sem_set_val(sem_id_zero, 0, SO_NUM_G); /* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
+	aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
+
+
 	conta_round = 0;
 	start=time(NULL);
-	while (1){
-		/* SEMAFORO PER ATTENDERE CHE I GIOCATORI PIAZZINO LE PEDINE */
-		sem_set_val(sem_id_zero, 0, SO_NUM_G);
-		sem_set_val(sem_id_zero,2,1); /* Giocatore aspetta via libera per strategia */
-		sem_reserve(sem_round,0); /* SBLOCCO L'INIZIO DEI NUOVI ROUND */
-		sem_set_val(sem_id_mutex,0,1); /* Consente al primo giocatore di piazzare la propria pedina */
-
-		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
-
+	while (1){		
 		/* PIAZZO BANDIERINE */
 		conta_round++;
 		pt_totali = SO_ROUND_SCORE;
@@ -129,43 +126,46 @@ int main(){
 		}
 
 		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-		/*sleep(1);*/
+		/*sleep(1); /* PER RALLENTARE IL GIOCO*/
 		
+		sem_set_val(sem_id_zero,2,1); /* semaforo per far attendere inizio movimento gioco  ai giocatori */	
 		sem_set_val(sem_id_zero, 0, SO_NUM_G); 
-		sem_reserve(sem_id_zero,2); /* sblocco i giocatori */
-			
+		sem_set_val(sem_round,0,SO_NUM_G);  /* SBLOCCO L'INIZIO DEI NUOVI ROUND */
 		/* ASPETTO CHE I GIOCATORI DANNO LE INDICAZIONI ALLE PEDINE */
-		aspetta_zero(sem_id_zero, 0); /* ATTENDE FINCHE' NON VALE 0 */
+		aspetta_zero(sem_id_zero, 0); 
 
 		alarm(SO_MAX_TIME);
 		sem_reserve(sem_id_zero,2); /* AVVIO ROUND */	
-
+		
 		for (i = 0; i < SO_NUM_G*SO_NUM_P; i++) {
 			msgrcv(ms_mg,&master_giocatore,sizeof(int)*3,1,0);
-			mosse_g[i] = 0;
-			mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;
+			mosse_g[i] = 0;	
+			mosse_g[(-master_giocatore.giocatore)-65]+= master_giocatore.mosse_residue;	
 			punteggio_g[(-master_giocatore.giocatore)-65]+= master_giocatore.bandierina;
 			if (master_giocatore.bandierina > 0) flag--;
 			if (flag == 0) alarm(0);
 		}
 		while (flag > 0); /* se le bandierine non vengono prese in tempo mi interromperà l'alarm */
-		
-		
+				
 		stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-
+	
 		/* AGGIORNO MOSSE GIOCATORI */
 		for (i = 0; i < SO_NUM_G; i++)
 			printf(GREEN"giocatore %c punteggio %d mosse %d \n"RESET,65+i,punteggio_g[i],mosse_g[i]);
+	
+		sem_set_val(sem_round,1,SO_NUM_P*SO_NUM_G); /* Sblocco pedine che si sono fermate alla fine del round*/
 		
-		/*sleep(1);*/
+		/*sleep(1); /*PER RALLENTARE IL GIOCO*/
 	}
 }
 
 void alarm_handle(int signal){
 	int i, punti_totali_g;
 	float mosse_tot;
+	
 	end=time(NULL);
 	tempo=((double)(end-start));
+
 	printf(RED"\nPARTITA FINITA\n"RESET);
 	punti_totali_g = 0;
 	for (i = 0; i < SO_NUM_G; i++){
@@ -173,7 +173,7 @@ void alarm_handle(int signal){
 			punti_totali_g+= punteggio_g[i];
 	}
 	stampa_scacchiera(SO_BASE,SO_ALTEZZA);
-	/* STAMPA METRICHE */
+	/* STAMPA METRICHE */	
 	printf(RED"\n------------- METRICHE -------------\n"RESET);
 	printf(YELLOW"\n- NUMERO ROUND GIOCATI: %d\n"RESET,conta_round);
 	mosse_tot = SO_NUM_P*SO_N_MOVES;
@@ -183,7 +183,7 @@ void alarm_handle(int signal){
 	printf(GREEN"\n- RAPPORTO PUNTI OTTENUTI E MOSSE UTILIZZATE\n"RESET);
 	for (i = 0; i < SO_NUM_G; i++)
 		printf("	GIOCATORE %c: %f\n",65+i,punteggio_g[i]/(mosse_tot-mosse_g[i]));
-	printf(GREEN"\n- RAPPORTO PUNTI TOTALI (%d) E TEMPO DI GIOCO IN SECONDI (%f):"RESET" %f\n",punti_totali_g,tempo,punti_totali_g/tempo);
+	printf(GREEN"\n- RAPPORTO PUNTI TOTALI (%d) E TEMPO DI GIOCO IN SECONDI (%f):"RESET" %f\n\n",punti_totali_g,tempo,punti_totali_g/tempo);
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	semctl(sem_round,0,IPC_RMID);
@@ -204,6 +204,7 @@ void alarm_handle(int signal){
 
 void sigint_handle(int signal){
 	int i;
+	printf("\nPARTITA INTERROTTA\n");
 	shmctl(mat_id, IPC_RMID, NULL); 
 	shmctl(conf_id, IPC_RMID, NULL);
 	semctl(sem_round,0,IPC_RMID);
@@ -212,13 +213,7 @@ void sigint_handle(int signal){
 	semctl(sem_id_mutex,0,IPC_RMID);
 	msgctl(ms_mg,IPC_RMID,NULL);
 	shmdt(matrice);
-	shmdt(set);
-	for (i = 0; i < SO_NUM_G; i++)
-		kill(fork_value[i],SIGINT);
+	shmdt(set);	
 	while (wait(NULL) != -1);	
-	free(punteggio_g);
-	free(mosse_g);
-	free(fork_value);
-	printf("\nPARTITA INTERROTTA\n");
 	exit(EXIT_SUCCESS);
 }

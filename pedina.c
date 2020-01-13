@@ -35,9 +35,9 @@ int main(){
     pedina.giocatore = gioc_pedina.giocatore;
     matrice[posizione(pedina.r,pedina.c,SO_BASE)] = pedina.giocatore;   
 
-    /* SBLOCCO IL GIOCATORE */
-    sem_id_zero = semget(KEY_0,4, IPC_CREAT | 0666);
-	sem_reserve(sem_id_zero,1);
+    /* MI POSIZIONO E SBLOCCO IL GIOCATORE */
+    sem_id_zero = semget(KEY_0,4, IPC_CREAT | 0666);   
+	sem_release(sem_id_zero,1);
 
     sem_round = semget(KEY_7,2,0666|IPC_CREAT); 
 
@@ -45,7 +45,7 @@ int main(){
         /* ATTENDO LA STRATEGIA */
         msgrcv(ms_gp,&gioc_pedina,sizeof(int)*7,getpid(),0);
 
-        /* ATTENDO INIZIO GIOCO */
+        /* ATTENDO INIZIO MOVIMENTO */
         aspetta_zero(sem_id_zero,3);
 
         /* RICERCA BANDIERINE */
@@ -116,7 +116,7 @@ int main(){
                     }
                 }
                 else {
-                    if (posso_muovermi_c == 0) break;
+                    if (posso_muovermi_c == 0) break; /* se sono sulla riga giusta e non posso muovermi per colonna break*/
                 }
             }
             }
@@ -181,7 +181,7 @@ int main(){
                     }
                 }
                 else {
-                    if (posso_muovermi_r == 0) break;
+                    if (posso_muovermi_r == 0) break; /* se sono sulla colonna giusta e non posso muovermi per riga break*/
                 }
             }
             }
@@ -195,7 +195,7 @@ int main(){
             gioc_pedina.c = pedina.c;
             msgsnd(ms_gp,&gioc_pedina,sizeof(int)*7,0);
         }
-        sem_set_val(sem_round,1,SO_NUM_G);
-        aspetta_zero(sem_round,1);
+        /* ATTENDO L'INIZO DI UN NUOVO ROUND */
+        sem_reserve(sem_round,1);
     }
 }

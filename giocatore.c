@@ -1,6 +1,6 @@
 #include "my_lib.h"
 
-void sigint_handler(int signal);
+void sigint_handle(int signal);
 
 int * fork_value, * pos_r, * pos_c, * band_r, * band_c, * vet_mosse, *assegnate_r, *assegnate_c;
 int ms_gp, SO_NUM_P;
@@ -16,7 +16,7 @@ int main(int argc, const char * args[]){
 
 	struct sigaction sb;
 	bzero(&sb,sizeof(sb));
-	sb.sa_handler = sigint_handler;
+	sb.sa_handler = sigint_handle;
 	sigaction(SIGINT,&sb,NULL);
 
 	/* CONFIGURAZIONE E COLLEGAMENTO ALLA SCACCHIERA */
@@ -104,8 +104,8 @@ int main(int argc, const char * args[]){
 				x = rand() % (SO_ALTEZZA);
 				y = rand() % (SO_BASE);
 			}
-		sem_reserve(sem_id_mutex,(-n_giocatore)-65);
-		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,SO_BASE));	
+		sem_reserve(sem_id_mutex,(-n_giocatore)-65);	
+		rit = sem_reserve_nowait(sem_id_matrice,posizione(x,y,SO_BASE));		
 		while (rit == -1 && errno == EAGAIN){
     	    if (posizione(x,y,SO_BASE) == ((SO_BASE*SO_ALTEZZA)-1)){
         	    x = 0;
@@ -121,28 +121,28 @@ int main(int argc, const char * args[]){
 		gioc_pedina.c = y;	
 		gioc_pedina.giocatore = n_giocatore;
 		gioc_pedina.mosse = SO_N_MOVES;
-		sem_set_val(sem_id_zero, 1, 1); /* Aspetto che la pedina si piazzi */
 		msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
-		aspetta_zero(sem_id_zero, 1); /* ATTENDE FINCHE' NON VALE 0 */
-		sem_release(sem_id_mutex,((-n_giocatore)-65+1)%SO_NUM_G);
+		sem_reserve(sem_id_zero, 1); /* Attendo che la pedina si piazzi */		
+		sem_release(sem_id_mutex,((-n_giocatore)-65+1)%SO_NUM_G); /* Sbloco prossimo giocatore */
 	}
 	
 	sem_round = semget(KEY_7,2, 0666 | IPC_CREAT); /* giocatore - pedine */	
-	sem_set_val(sem_round,1,SO_NUM_G); /* bloccherà le pedine al termine dei round */
+	sem_set_val(sem_round,1,0); /* bloccherà le pedine al termine dei round */
 
 
 	vet_mosse = malloc(sizeof(int)*SO_NUM_P);
 	for (i = 0; i<SO_NUM_P; i++) vet_mosse[i] = SO_N_MOVES;
 	band_r = malloc(sizeof(int)); /* righe bandierine */
 	band_c = malloc(sizeof(int)); /* colonne bandierine */	
+
+	/* SBLOCCO IL MASTER */
+	sem_reserve(sem_id_zero,0);
+	
 	while(1){
-		/* SBLOCCO IL MASTER */
-		sem_reserve(sem_id_zero,0);
 		/* ASPETTO VIA LIBERA DAL MASTER */
-		aspetta_zero(sem_id_zero,2);
-		sem_reserve(sem_round,1); /* sblocco le pedine che si fermeranno alla fine del round */
-		
-		sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL GIOCO */
+		sem_reserve(sem_round,0);
+
+		sem_set_val(sem_id_zero, 3, SO_NUM_G); /* SEMAFORO PER FAR ASPETTARE ALLE PEDINE L'INIZIO DEL MOVIMENTO */
 		cont = 0;
 		i = 0;
 		for (r = 0; r < SO_ALTEZZA; r++){
@@ -189,14 +189,12 @@ int main(int argc, const char * args[]){
 			gioc_pedina.type = fork_value[i];
 			msgsnd(ms_gp,&gioc_pedina,((sizeof(int)*7)),0);
 		}
-		/*for (i = 0; i < SO_NUM_P; i++) printf("r %d c %d \n",assegnate_r[i],assegnate_c[i]);*/
 		free(assegnate_r);
 		free(assegnate_c);
-		sem_set_val(sem_id_zero,2,1); /* semaforo per attendere inizio gioco */	
 		/* SBLOCCO IL MASTER */
 		sem_reserve(sem_id_zero,0);
 
-		/* ATTENDO INIZIO GIOCO */
+		/* ATTENDO INIZIO MOVIMENTO */
 		aspetta_zero(sem_id_zero,2);
 	
 		/* SBLOCCO MOVIMENTO PEDINE E MI METTO IN READ*/
@@ -212,17 +210,16 @@ int main(int argc, const char * args[]){
 			pos_r[i] = gioc_pedina.r;
 			pos_c[i] = gioc_pedina.c; 
 		}
-		sem_set_val(sem_round,0,1);
-		aspetta_zero(sem_round,0);
 	}
 }
 
 
-void sigint_handler(int signal){
+void sigint_handle(int signal){
 	int i;
+
 	msgctl(ms_gp,IPC_RMID,NULL);
 	for (i = 0; i < SO_NUM_P; i++)
-		kill(fork_value[i],SIGINT);
+		kill(fork_value[i],SIGTERM);
 	free(fork_value);
 	free(pos_c);
 	free(pos_r);
